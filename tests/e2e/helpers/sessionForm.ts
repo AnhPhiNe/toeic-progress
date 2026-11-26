@@ -21,10 +21,12 @@ export async function choosePractice(dialog: Locator) {
 export async function useOfficialScore(dialog: Locator) {
   const direct = dialog.getByRole('button', { name: 'Điểm chính thức', exact: true });
   if (await direct.isVisible()) { await direct.click(); return; }
+  const manualLink = dialog.getByRole('button', { name: /^Không có ảnh\? Tự nhập tay/ });
+  if (await manualLink.isVisible()) await manualLink.click();
   const more = dialog.getByRole('button', { name: /^Cách khác/ });
   if (await more.isVisible()) {
     const grid = dialog.getByRole('button', { name: 'Câu 1', exact: true });
-    if (!(await grid.isVisible())) await chooseMore(dialog, /^Tự chọn câu sai/);
+    if (!(await grid.isVisible())) await chooseMore(dialog, /^(Tự chọn câu sai|Không có ảnh\? Tự nhập tay)/);
     await chooseMore(dialog, 'Điểm chính thức');
     return;
   }
@@ -37,10 +39,14 @@ export async function openHistoryEdit(page: Page, testName: string) {
   await page.getByRole('tab', { name: /^Các đề/ }).click();
   await page.getByRole('button', { name: testName }).first().click();
   await page.getByRole('button', { name: 'Sửa điểm', exact: true }).click();
+  const editMeta = page.getByRole('dialog', { name: 'Sửa kết quả', exact: true }).locator('.rdl-meta-bar button');
+  if (await editMeta.isVisible()) await editMeta.click();
 }
 
 /** Phones log a Full Test by its wrong questions; tests that type per-Part counts switch to the counts entry first. */
 export async function usePartCounts(dialog: Locator) {
+  const manualLink = dialog.getByRole('button', { name: /^Không có ảnh\? Tự nhập tay/ });
+  if (await manualLink.isVisible()) await manualLink.click();
   const more = dialog.getByRole('button', { name: /^Cách khác/ });
   const phoneManual = dialog.getByRole('button', { name: /^✎ Tự chọn câu sai/ });
   if (await phoneManual.isVisible()) await phoneManual.click();
@@ -48,7 +54,7 @@ export async function usePartCounts(dialog: Locator) {
   if (await link.isVisible()) { await link.click(); return; }
   if (await more.isVisible()) {
     const grid = dialog.getByRole('button', { name: 'Câu 1', exact: true });
-    if (!(await grid.isVisible())) await chooseMore(dialog, /^Tự chọn câu sai/);
+    if (!(await grid.isVisible())) await chooseMore(dialog, /^(Tự chọn câu sai|Không có ảnh\? Tự nhập tay)/);
     await chooseMore(dialog, 'Số câu đúng mỗi Part');
   }
 }

@@ -52,17 +52,15 @@ test.describe('Hồ sơ của Sóc', () => {
     await open(page);
     await expect(page.getByRole('button', { name: /Khung Vàng/ })).toContainText('Quà mùa 1');
     await expect(page.getByRole('button', { name: /Khăn ngọc/ })).toBeDisabled();
-    const save = page.getByRole('button', { name: 'Lưu bộ đồ' });
-    await expect(save).toBeDisabled();
+    await expect(page.getByRole('button', { name: 'Lưu bộ đồ' })).toHaveCount(0);
     await page.getByRole('radio', { name: 'Xám tro' }).click();
     await page.getByRole('button', { name: /Khung Vàng/ }).click();
     await expect(page.getByRole('button', { name: /Khung Vàng/ })).toHaveAttribute('aria-pressed', 'true');
-    // The big preview wears the selection before saving: grey coat and the gold frame.
+    // The big preview wears the selection immediately and auto-saves: grey coat and gold frame.
     const preview = await page.locator('.pf-room__art').innerHTML();
     expect(preview).toContain('#d99a00');
     expect(preview).toContain('#a9b2bf');
-    await save.click();
-    await expect(page.getByRole('button', { name: 'Đã lưu' })).toBeVisible();
+    await expect(page.getByRole('status').filter({ hasText: 'Đã mặc' })).toBeVisible();
     const stored = await page.evaluate(() => JSON.parse(localStorage.getItem('toeic_progress_account_alice_v3') ?? '{}').profile);
     expect(stored.socCoat).toBe('xam');
     expect(stored.socGear).toContain('frame-vang.m1');
@@ -74,9 +72,12 @@ test.describe('Hồ sơ của Sóc', () => {
     test('Tủ đồ and Huy hiệu tabs; badge detail opens as a sheet', async ({ page }) => {
       await open(page);
       await expect(page.getByRole('tab', { name: 'Tủ đồ' })).toHaveAttribute('aria-selected', 'true');
-      await expect(page.getByRole('button', { name: 'Lưu bộ đồ' })).toBeVisible();
+      await expect(page.getByRole('button', { name: 'Lưu bộ đồ' })).toHaveCount(0);
+      await expect(page.locator('.pf-stage > svg')).toHaveCount(1);
+      await expect(page.locator('.pf-pid .soc')).toHaveCount(0);
       await page.getByRole('tab', { name: /Huy hiệu · \d+\/60/ }).click();
       await expect(page.getByRole('button', { name: /^Cán mốc:/ })).toContainText('700/750 → Bạc');
+      await expect(page.getByRole('button', { name: 'Xem toàn bộ 20 huy hiệu' })).toBeVisible();
       await labelsFit(page);
       await page.getByRole('button', { name: /^Cán mốc:/ }).click();
       const sheet = page.getByRole('dialog', { name: 'Cán mốc' });

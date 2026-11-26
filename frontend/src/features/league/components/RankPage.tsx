@@ -89,7 +89,7 @@ function Join({ guest, league, onSignIn, isPhone, gear, coat, season }: { guest:
     setProblem(issue);
     if (!issue) await league.join(name.trim().replace(/\s+/g, ' '));
   };
-  const art = useMemo(() => climbScene(isPhone ? 358 : 680, isPhone ? 300 : 788, isPhone, gear, coat), [isPhone, gear, coat]);
+  const art = useMemo(() => climbScene(isPhone ? 358 : 680, isPhone ? 300 : 540, isPhone, gear, coat), [isPhone, gear, coat]);
   const perks = [
     { Icon: Shield, bg: '#e6f3fd', c: '#136fb3', t: 'Nhóm tối đa 20 bạn cùng hạng', s: 'Bảng mới mỗi thứ Hai, ai chăm học là lên.' },
     { Icon: Star, bg: '#fff3d1', c: '#d99a00', t: 'Tính bằng sao học', s: 'Không so điểm TOEIC, chỉ so công sức trong tuần.' },

@@ -12,9 +12,9 @@ export async function isPhoneLayout(page: Page) {
   return (page.viewportSize()?.width ?? 1280) < 768;
 }
 
-type RecordKind = 'score' | 'practice' | 'mistake' | 'vocab';
+type RecordKind = 'score' | 'practice' | 'mistake';
 const SHEET_BUTTON: Record<RecordKind, RegExp> = {
-  score: /^Điểm đề/, practice: /^Buổi luyện/, mistake: /^Chụp câu sai/, vocab: /^Thêm từ vựng/
+  score: /^Điểm đề/, practice: /^Buổi luyện/, mistake: /^Chụp câu sai/
 };
 
 /** Phones: open the "+ Ghi" sheet and pick one entry. */

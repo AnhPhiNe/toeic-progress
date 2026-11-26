@@ -1,4 +1,4 @@
-import { useMemo } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import type { MistakeEntry } from '@/shared/types';
 import { ERROR_CATEGORY_LABELS } from '@/shared/types';
 import { Soc } from '@/shared/ui/soc/Soc';
@@ -9,7 +9,14 @@ import { isWordSaved } from '@/features/mistakes/lib/savedWords';
 import { AnswerDoubtNote } from './AnswerDoubtNote';
 import { canExplain } from './MistakeCard';
 import { isNumberLabel } from '@/features/mistakes/lib/questionSnippet';
-import { EvidenceJumper, EvidencePassage, OptionRows, SignalBlock, TipBlock, WordRows, useEvidenceJump } from './CardParts';
+import { EvidenceJumper, EvidencePassage, OptionRows, QuestionHeading, SignalBlock, TipBlock, WordRows, useEvidenceJump } from './CardParts';
+
+export interface CardNavProps {
+  index: number;
+  total: number;
+  onPrev?: () => void;
+  onNext?: () => void;
+}
 
 export interface MistakeDetailActions {
   onEdit: () => void;
@@ -133,44 +140,100 @@ function Plain({ m }: { m: MistakeEntry }) {
  * at the evidence, and the question with everything else on the right; a reason-only Listening card centers cleanly
  * in one column without an empty placeholder grid.
  */
-export function MistakeDetail({ mistake: m, testName, actions, onBack }: { mistake: MistakeEntry; testName?: string; actions: MistakeDetailActions; onBack: () => void }) {
+export function MistakeDetail({
+  mistake: m, testName, actions, onBack, nav, blind = false, onToggleBlind
+}: {
+  mistake: MistakeEntry;
+  testName?: string;
+  actions: MistakeDetailActions;
+  onBack: () => void;
+  nav?: CardNavProps;
+  blind?: boolean;
+  onToggleBlind?: () => void;
+}) {
   const view = useCardView(m);
   const { context, question, rows, evidences, marked, due } = view;
   const reading = Boolean(context);
   const noteOnly = !reading && !rows.length;
-  const jump = useEvidenceJump(reading ? marked.count : 0, `${m.id}:${context.length}`);
+  const [selfPick, setSelfPick] = useState<string | null>(null);
+  const [localBlind, setLocalBlind] = useState(false);
+  const isBlind = onToggleBlind ? blind : localBlind;
+  const toggleBlind = onToggleBlind ?? (() => setLocalBlind(v => !v));
+  useEffect(() => { setSelfPick(null); }, [m.id]);
+
+  useEffect(() => {
+    if (!nav || nav.total < 2) return;
+    const onKey = (e: KeyboardEvent) => {
+      if (e.metaKey || e.ctrlKey || e.altKey) return;
+      const t = e.target;
+      if (t instanceof HTMLElement && (t.tagName === 'INPUT' || t.tagName === 'TEXTAREA' || t.isContentEditable)) return;
+      if (e.key === 'ArrowLeft' && nav.onPrev) { e.preventDefault(); nav.onPrev(); }
+      else if (e.key === 'ArrowRight' && nav.onNext) { e.preventDefault(); nav.onNext(); }
+    };
+    window.addEventListener('keydown', onKey);
+    return () => window.removeEventListener('keydown', onKey);
+  }, [nav]);
+
+  const hiddenMode = Boolean(isBlind && rows.length > 0 && !selfPick);
+  const jump = useEvidenceJump(reading && !hiddenMode ? marked.count : 0, `${m.id}:${context.length}`);
   const options = rows.length
-    ? <OptionRows rows={rows} reasonOnly={reading} showPos={view.showPos} />
+    ? <OptionRows rows={rows} reasonOnly={reading} showPos={view.showPos} blind={isBlind} selfPick={selfPick} onSelfPick={setSelfPick} />
     : <Plain m={m} />;
-  const hint = rows.some(row => row.role === '' && (row.meaning || row.reason));
+  const hint = !hiddenMode && rows.some(row => row.role === '' && (row.meaning || row.reason));
+  const partClass = m.part === 5 ? ' is-p5' : m.part === 6 ? ' is-p6' : m.part === 7 ? ' is-p7' : '';
+
+  const blindBanner = isBlind && selfPick && (
+    <div className={'cd-blind-res ' + (selfPick === view.answer ? 'is-ok' : 'is-err')} role="status">
+      <span>{selfPick === view.answer ? `Chính xác! Đáp án là ${view.answer}.` : `Bạn chọn ${selfPick} — Đáp án đúng là ${view.answer}.`}</span>
+      <button type="button" onClick={() => setSelfPick(null)}>Làm lại</button>
+    </div>
+  );
 
   return (
-    <div className={'cd' + (reading ? ' is-reading' : noteOnly ? ' is-note' : '')}>
+    <div className={'cd' + (reading ? ' is-reading' : noteOnly ? ' is-note' : '') + partClass}>
       <header className="cd-crumb">
         <button type="button" className="cd-back" onClick={onBack}><span aria-hidden="true">←</span> Sổ tay</button>
         <div>
           <h2>{cardTitle(m, ', ')}</h2>
           <p>{testName ? `${testName} · ` : ''}{categoryShort(m.category)} · <b className={due.due ? 'is-due' : undefined}>{due.text}</b></p>
         </div>
+        <div className="cd-crumb-tools">
+          {rows.length > 0 && (
+            <button type="button" className="cd-blind-btn" aria-pressed={isBlind} onClick={toggleBlind}>
+              <span aria-hidden="true">{isBlind ? '👁' : '🙈'}</span>
+              {isBlind ? 'Hiện đáp án' : 'Tự làm lại'}
+            </button>
+          )}
+          {nav && nav.total > 1 && (
+            <div className="cd-nav" role="group" aria-label="Chuyển câu hỏi">
+              <button type="button" onClick={nav.onPrev} disabled={!nav.onPrev} aria-label="Câu trước" title="Câu trước (←)">‹</button>
+              <span>{nav.index + 1}/{nav.total}</span>
+              <button type="button" onClick={nav.onNext} disabled={!nav.onNext} aria-label="Câu sau" title="Câu sau (→)">›</button>
+            </div>
+          )}
+        </div>
       </header>
-      {m.answerDoubt && view.answer !== m.answerDoubt && <div className="cd-doubt"><AnswerDoubtNote doubt={m.answerDoubt} current={view.answer} onSwitch={() => actions.onResolveDoubt(true)} onKeep={() => actions.onResolveDoubt(false)} /></div>}
+      {!hiddenMode && m.answerDoubt && view.answer !== m.answerDoubt && <div className="cd-doubt"><AnswerDoubtNote doubt={m.answerDoubt} current={view.answer} onSwitch={() => actions.onResolveDoubt(true)} onKeep={() => actions.onResolveDoubt(false)} /></div>}
 
       {reading ? (
         <div className="cd-cols">
           <section className="cd-pcard" aria-label="Đoạn văn">
             <div className="cd-phd"><span>Đoạn văn</span>
-              {marked.count > 1 ? <EvidenceJumper at={jump.at} count={marked.count} onNext={jump.next} />
-                : marked.count === 1 ? <span>Câu bằng chứng tô vàng</span> : null}
+              {!hiddenMode && (marked.count > 1 ? <EvidenceJumper at={jump.at} count={marked.count} onNext={jump.next} />
+                : marked.count === 1 ? <span className="cd-phd-count">1 câu bằng chứng</span> : null)}
             </div>
             <div className="cd-pscroll" ref={jump.box} tabIndex={0} aria-label="Nội dung đoạn văn">
-              <EvidencePassage context={context} evidences={evidences} marked={marked} at={marked.count > 1 ? jump.at : -1} />
+              <EvidencePassage context={context} evidences={evidences} marked={marked} at={marked.count > 1 ? jump.at : -1} hideHighlights={hiddenMode} part={m.part} />
             </div>
           </section>
           <aside className="cd-panel">
             <div className="cd-pbody">
-              {question && <h3 className="cd-q is-sm">{question}</h3>}
+              <QuestionHeading part={m.part} question={question} context={context} questionNumber={m.questionNumber} small />
+              {blindBanner}
               {options}
-              <ExplainBody m={m} view={view} actions={actions} />
+              {hiddenMode
+                ? <p className="cd-blind-note">Đáp án và câu bằng chứng đang tạm ẩn. Chọn A–D ở trên để tự kiểm tra trước khi xem lời giải.</p>
+                : <ExplainBody m={m} view={view} actions={actions} />}
             </div>
             <Actions m={m} actions={actions} />
           </aside>
@@ -197,12 +260,17 @@ export function MistakeDetail({ mistake: m, testName, actions, onBack }: { mista
       ) : (
         <div className="cd-cols">
           <section className="cd-qcard" aria-label="Câu hỏi">
-            {question && <h3 className="cd-q">{question}</h3>}
+            <QuestionHeading part={m.part} question={question} context={context} questionNumber={m.questionNumber} signal={view.signal} showClues={!hiddenMode} />
+            {blindBanner}
             {options}
             {hint && <p className="cd-hint">Bấm “Vì sao” để xem lý do của từng đáp án.</p>}
           </section>
           <aside className="cd-panel">
-            <div className="cd-pbody"><ExplainBody m={m} view={view} actions={actions} /></div>
+            <div className="cd-pbody">
+              {hiddenMode
+                ? <p className="cd-blind-note">Đáp án và mẹo giải đang tạm ẩn. Hãy chọn A–D bên trái để tự kiểm tra trí nhớ trước khi xem lời giải.</p>
+                : <ExplainBody m={m} view={view} actions={actions} />}
+            </div>
             <Actions m={m} actions={actions} />
           </aside>
         </div>

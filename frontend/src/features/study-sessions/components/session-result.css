@@ -60,3 +60,8 @@
 .sr-ask .soc { flex: none; }
 .sr-ask i { margin-left: auto; font-style: normal; color: var(--rd-mut); }
 .sr-ask:focus-visible { outline: 3px solid var(--rd-blue); outline-offset: 2px; }
+
+.sr-subacts { display: flex; align-items: center; justify-content: center; gap: 12px; margin-top: 8px; flex-wrap: wrap; }
+.sr-subacts .sr-later { margin: 0; }
+.sr-share { display: inline-flex; align-items: center; gap: 6px; border: 2px solid var(--rd-line); background: #fff; border-radius: 12px; padding: 7px 13px; font: 900 13.5px var(--rd-font); color: var(--rd-ink); cursor: pointer; }
+.sr-share:hover { border-color: #cbd5cf; background: #fafbfa; }

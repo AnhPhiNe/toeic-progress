@@ -10,7 +10,7 @@ import { doneDates, streakWeek, weeklyGoal } from '@/shared/domain/streakWeek';
 import { lastDoneDate, todaySocMood, useWake } from '../lib/socMood';
 import { daysUntil } from '@/features/journey/lib/scoreJourney';
 import { pickTodayTasks, type TodayTask } from '../lib/todayTasks';
-import { addHabit, clampWeeklyGoal, extraStudyDates, removeHabit, toggleHabit } from '../lib/habits';
+import { clampWeeklyGoal, extraStudyDates } from '../lib/habits';
 import { PREVIEW_TARGET, TARGET_PRESETS, hasChosenGoal, profileWithGoal, todayMode } from '../lib/goalSetup';
 import { buildPhoneItems } from '../lib/phoneToday';
 import { useSkippedToday } from '../lib/useSkippedToday';
@@ -18,7 +18,6 @@ import { RoadScene, RoadSign } from './RoadScene';
 import { buildRoadModel } from '../lib/roadModel';
 import { TaskPanel } from './phone/TaskPanel';
 import { StreakSheet } from './phone/StreakSheet';
-import { AddHabitSheet } from './phone/AddHabitSheet';
 import { Confetti, GreetSoc, SocBubble } from './welcome/Welcome';
 import { useWelcome } from './welcome/useWelcome';
 import { CoatPanel } from './welcome/CoatStep';
@@ -73,8 +72,7 @@ export function TodayPhone({ bundle, today, onStartTask, onStartSuggestion, onPr
   const [skipped, skipTask] = useSkippedToday(today);
   const suggestions = useMemo(() => suggestionsToday(profile, bundle.pacingRuns, today), [profile, bundle.pacingRuns, today]);
   const tasks = useMemo(() => withoutRepeatedTimers(pickTodayTasks(bundle, today, { off: profile.suggestOff }).filter(t => !skipped.includes(t.id)), suggestions), [bundle, today, skipped, profile.suggestOff, suggestions]);
-  const habits = useMemo(() => profile.habits ?? [], [profile.habits]);
-  const items = useMemo(() => buildPhoneItems(tasks, habits, today, suggestions), [tasks, habits, today, suggestions]);
+  const items = useMemo(() => buildPhoneItems(tasks, [], today, suggestions), [tasks, today, suggestions]);
   const extra = useMemo(() => extraStudyDates(profile, mistakes), [profile, mistakes]);
   const week = useMemo(() => streakWeek(bundle, today, extra), [bundle, today, extra]);
   const lastDone = useMemo(() => lastDoneDate(doneDates(bundle, today, extra), today), [bundle, today, extra]);
@@ -88,7 +86,7 @@ export function TodayPhone({ bundle, today, onStartTask, onStartSuggestion, onPr
   const finishGoal = () => { setCoatStep(false); setEditingGoal(false); welcome.confirm(); };
 
   const [expanded, setExpanded] = useState(false);
-  const [sheet, setSheet] = useState<'streak' | 'add' | null>(null);
+  const [sheet, setSheet] = useState<'streak' | null>(null);
 
   // Scene size, heading bottom and panel height: the stairs are recomputed for what is left between them.
   const root = useRef<HTMLDivElement>(null);
@@ -169,7 +167,6 @@ export function TodayPhone({ bundle, today, onStartTask, onStartSuggestion, onPr
           : mode === 'choose'
             ? <h1>Bạn muốn lên<br /><em>cúp bao nhiêu?</em></h1>
             : <h1>Đường tới<br /><em>cúp {target}</em> đã sẵn sàng</h1>}
-        {mode === 'ready' && <button type="button" className="tp-edit" onClick={e => goalEdit.open(e.currentTarget)}>Sửa mục tiêu</button>}
       </div>
 
       {mode === 'choose' && coatStep ? (
@@ -195,11 +192,10 @@ export function TodayPhone({ bundle, today, onStartTask, onStartSuggestion, onPr
           expanded={expanded} gear={soc.worn}
           onToggleExpanded={() => setExpanded(v => !v)}
           onStartTask={onStartTask} onSkipTask={skipTask}
-          onToggleHabit={id => onUpdateProfile(p => toggleHabit(p, id, today))}
           onStartSuggestion={onStartSuggestion}
           onToggleSuggestion={id => onUpdateProfile(p => toggleSuggestion(p, id, today))}
           onPracticeMore={onPracticeMore}
-          onOpenStreak={() => setSheet('streak')} onOpenAdd={() => setSheet('add')}
+          onOpenStreak={() => setSheet('streak')}
           league={shell.league ? { text: shell.league.chip, short: shell.league.chipShort, aria: shell.league.chipAria, onOpen: () => shell.goTab('league') } : undefined}
         />
       )}
@@ -216,16 +212,7 @@ export function TodayPhone({ bundle, today, onStartTask, onStartSuggestion, onPr
       )}
 
       {sheet === 'streak' && (
-        <StreakSheet week={week} goal={goal} broke={rest === 'sad'} onSetWeeklyGoal={days => onUpdateProfile(p => ({ ...p, weeklyGoalDays: clampWeeklyGoal(days) }))} onClose={() => setSheet(null)} />
-      )}
-      {sheet === 'add' && (
-        <AddHabitSheet
-          habits={habits} suggestOff={profile.suggestOff ?? []}
-          onAdd={title => onUpdateProfile(p => addHabit(p, title, crypto.randomUUID()))}
-          onRemove={id => onUpdateProfile(p => removeHabit(p, id))}
-          onToggleSuggest={kind => onUpdateProfile(p => { const off = p.suggestOff ?? []; return { ...p, suggestOff: off.includes(kind) ? off.filter(k => k !== kind) : [...off, kind] }; })}
-          onClose={() => setSheet(null)}
-        />
+        <StreakSheet week={week} goal={goal} broke={rest === 'sad'} onClose={() => setSheet(null)} />
       )}
     </div>
   );

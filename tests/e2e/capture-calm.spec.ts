@@ -80,7 +80,7 @@ test('desktop: quick buttons stay visible under the zone and Cách khác holds t
   await flow.getByRole('button', { name: 'Nhóm 149–150', exact: true }).click();
   await expect(flow.getByRole('heading', { name: 'Nhóm 149–150', level: 3 })).toBeVisible();
   for (const name of [/^Dán ảnh vừa chụp/, /^Tự nhận ảnh mới/, /^Chọn ảnh/]) await expect(flow.getByRole('button', { name })).toBeVisible();
-  await expect(flow.getByRole('button', { name: /^Ảnh giấy/ })).toBeVisible();
+  await expect(flow.getByRole('button', { name: /^Ảnh giấy/ })).toHaveCount(0);
   // Part 7: two zones, the primary waits for the question photos.
   await expect(flow.getByText('Đoạn văn', { exact: true })).toBeVisible();
   await expect(flow.getByText('Câu hỏi', { exact: true })).toBeVisible();
@@ -166,9 +166,10 @@ test('Ghi điểm: "Lưu điểm" appears only after Sóc has read the photo; qu
   await expect(form.getByRole('button', { name: 'Chọn ảnh', exact: true })).toBeVisible();
   await expect(form.getByRole('button', { name: 'Lưu điểm', exact: true })).toHaveCount(0);
   await shot(page, '6a-ghi-diem-desktop');
-  for (const name of ['Phiếu tô giấy', 'Ghép nhiều ảnh', 'Dán ảnh vừa chụp', 'Tự nhận ảnh mới', 'Tự chọn câu sai']) {
-    await expect(form.getByRole('button', { name: new RegExp(`^${name}`) })).toBeVisible();
+  for (const name of [/^Dán ảnh vừa chụp/, /^Tự nhận ảnh mới/, /^Không có ảnh\? Tự nhập tay/]) {
+    await expect(form.getByRole('button', { name })).toBeVisible();
   }
+  await expect(form.getByRole('button', { name: /^Phiếu tô giấy/ })).toHaveCount(0);
   await shot(page, '6b-ghi-diem-cach-khac-desktop');
   await form.getByLabel('Ảnh kết quả', { exact: true }).setInputFiles(pageTopPng());
   await expect(form.getByRole('button', { name: 'Lưu điểm', exact: true })).toBeVisible({ timeout: 10000 });

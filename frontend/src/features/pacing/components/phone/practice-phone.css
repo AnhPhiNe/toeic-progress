@@ -4,9 +4,9 @@
 .pp-say { background: #fff; border-radius: 16px; padding: 8px 11px; font-weight: 800; font-size: 12.5px; line-height: 1.35; box-shadow: 0 3px 0 rgba(0, 0, 0, .06); }
 .pp-say b { font-weight: 900; color: var(--rd-violet-d); }
 
-.pp .pp-fire { flex: 1; width: auto; min-width: 0; border-radius: 99px; padding: 17px 12px; min-height: 56px; font-size: 17px; white-space: nowrap; --rd-btn-d: #c44a3a;
-  background: linear-gradient(90deg, #ff7a1a, #ff5c86); box-shadow: 0 5px 0 #c44a3a, 0 8px 18px rgba(255, 92, 134, .25); }
-.pp .pp-fire:active { box-shadow: 0 1px 0 #c44a3a; }
+.pp .pp-fire { flex: 1; width: auto; min-width: 0; border-radius: 99px; padding: 17px 12px; min-height: 56px; font-size: 17px; white-space: nowrap; --rd-btn: var(--rd-violet); --rd-btn-d: var(--rd-violet-d);
+  background: var(--rd-violet); box-shadow: 0 5px 0 var(--rd-violet-d), 0 8px 18px rgba(124, 92, 224, .24); }
+.pp .pp-fire:active { box-shadow: 0 1px 0 var(--rd-violet-d); }
 .pp-mins { display: inline-flex; align-items: center; gap: 2px; flex: none; border-radius: 99px; background: #fff1e6; box-shadow: 0 4px 0 #ffd7bd; padding: 0 4px; height: 56px; position: relative; font-weight: 900; font-size: 17px; color: #d9661f; }
 .pp-mins b { min-width: 24px; text-align: center; }
 .pp-mins span { font-size: 11px; color: #a3aba5; font-weight: 800; margin-left: -4px; }

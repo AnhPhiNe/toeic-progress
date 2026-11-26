@@ -6,11 +6,13 @@ const myRow = (page: Page) => page.getByRole('list', { name: /^Bảng / }).locat
 
 test.describe('Xếp hạng', () => {
   test('a guest sees the climb and a sign-in button; the old address redirects', async ({ page }) => {
+    await page.setViewportSize({ width: 1366, height: 700 });
     await page.addInitScript(() => localStorage.setItem('toeic_onboarding_done_v1', 'true'));
     await page.goto('/giai-dau');
     await expect(page).toHaveURL(/\/xep-hang$/);
     await expect(page.getByRole('heading', { name: /Học đều mỗi tuần/ })).toBeVisible();
     await expect(page.getByRole('button', { name: 'Đăng nhập để tham gia' })).toBeVisible();
+    expect(await page.evaluate(() => document.documentElement.scrollHeight <= innerHeight)).toBe(true);
   });
 
   test('joining with a nickname shows the rank, season and the star board', async ({ page }) => {

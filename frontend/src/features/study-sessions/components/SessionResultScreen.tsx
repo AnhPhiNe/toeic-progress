@@ -1,7 +1,11 @@
-import { useMemo } from 'react';
+import { useEffect, useMemo } from 'react';
 import type { MistakeEntry, StudySession } from '@/shared/types';
 import { ERROR_CATEGORY_LABELS } from '@/shared/types';
 import { useModalA11y } from '@/shared/hooks/useModalA11y';
+import { useCountUp } from '@/shared/hooks/useCountUp';
+import { playChime } from '@/shared/lib/sound';
+import { triggerHaptic } from '@/shared/lib/haptics';
+import { ShareCardButton } from '@/shared/components/ShareCardButton';
 import { Soc } from '@/shared/ui/soc/Soc';
 import './session-result.css';
 import { PHONE_QUERY, useMediaQuery } from '@/shared/hooks/useMediaQuery';
@@ -68,6 +72,12 @@ function DesktopSessionResult({ session, sessions, mistakes, targetScore, onClos
   const { goal } = result;
   const firstTest = useMemo(() => isFirstFullTest(sessions), [sessions]);
   const facts = useMemo(() => resultFacts(session, sessions, targetScore), [session, sessions, targetScore]);
+  const shownScore = useCountUp(result.score, 600);
+  useEffect(() => {
+    playChime(facts.record ? 'levelup' : 'complete');
+    triggerHaptic(12);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   const primary = result.step === 'mark' ? { label: 'Đánh dấu câu sai', run: onMarkWrong }
     : result.step === 'detail' ? { label: `Ghi chi tiết ${result.detailCount} câu sai`, run: onDetails }
@@ -88,7 +98,7 @@ function DesktopSessionResult({ session, sessions, mistakes, targetScore, onClos
           <Soc state={facts.record ? 'proud' : result.mood === 'happy' ? 'cheerC' : 'hi'} size={128} className="sr-soc" />
           <h2 id="session-result-title">{result.headline}</h2>
           <p className="sr-sub">{result.subline}</p>
-          <p className="sr-score"><b>{result.score}</b><span>/ 990</span></p>
+          <p className="sr-score"><b>{shownScore}</b><span>/ 990</span></p>
           {result.listening !== undefined && result.reading !== undefined && (
             <p className="sr-lr"><span>Nghe <b>{result.listening}</b></span><span>Đọc <b>{result.reading}</b></span></p>
           )}
@@ -137,7 +147,10 @@ function DesktopSessionResult({ session, sessions, mistakes, targetScore, onClos
           {onAskAdvice && <AskAdviceRow onClick={onAskAdvice} />}
           <div className="sr-acts">
             <button type="button" onClick={primary.run} className="rd-btn sr-main">{primary.label}</button>
-            {result.step !== 'done' && <button type="button" onClick={onClose} className="sr-later">Để sau</button>}
+            <div className="sr-subacts">
+              <ShareCardButton data={{ total: result.score, listening: result.listening, reading: result.reading, testName: session.testName, subtitle: facts.record ? 'Kỷ lục mới' : undefined }} className="sr-share" />
+              {result.step !== 'done' && <button type="button" onClick={onClose} className="sr-later">Để sau</button>}
+            </div>
           </div>
         </section>
       </div>

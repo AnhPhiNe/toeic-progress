@@ -28,7 +28,7 @@ interface Props {
 const REDUCED = '(prefers-reduced-motion: reduce)';
 /** Phone cards say "Cả Đọc"; the heading keeps the Part label. */
 const cardName = (c: BakeryChoice) => (c.mode === 'FULL_READING' ? 'Cả Đọc' : c.label);
-const stepTime = (seconds: number) => (seconds >= 60 ? `${Math.round(seconds / 60)}p` : formatSpan(seconds));
+const stepTime = (seconds: number) => formatSpan(seconds);
 
 /** Chọn mẻ on phones: awning, display case with the chosen cake, swipeable Part cards, fire button and tools. */
 export function PhoneBakeryChoose(p: Props) {

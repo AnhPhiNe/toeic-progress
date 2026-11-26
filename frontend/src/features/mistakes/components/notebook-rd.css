@@ -11,9 +11,9 @@
 .nb-tabs button[aria-selected="true"] { background: #fff; color: var(--rd-ink); box-shadow: 0 3px 0 var(--rd-line); }
 .nb-tabs em { font-style: normal; font-weight: 800; color: var(--rd-mut); margin-left: 6px; }
 
-.nb-hero { position: relative; margin-top: 20px; border-radius: 28px; background: #ffeef2; padding: 26px 32px; display: flex; align-items: center; justify-content: space-between; gap: 20px; overflow: hidden; min-height: 180px; }
-.nb-hero h2 { font-weight: 900; font-size: 32px; letter-spacing: -.9px; line-height: 1.15; }
-.nb-hero p { font-weight: 700; font-size: 15px; color: #5c675f; margin: 6px 0 18px; max-width: 600px; line-height: 1.45; }
+.nb-hero { position: relative; margin-top: 16px; border-radius: 26px; background: #ffeef2; padding: 20px 26px; display: flex; align-items: center; justify-content: space-between; gap: 16px; overflow: hidden; min-height: 148px; }
+.nb-hero h2 { font-weight: 900; font-size: 30px; letter-spacing: -.9px; line-height: 1.15; }
+.nb-hero p { font-weight: 700; font-size: 15px; color: #5c675f; margin: 5px 0 14px; max-width: 600px; line-height: 1.45; }
 .nb-hero .rd-btn { font-size: 16.5px; padding: 13px 24px; }
 .nb-hsoc { flex: none; margin: -12px 12px -28px 0; }
 .nb-hero.is-empty { justify-content: flex-start; gap: 40px; padding: 40px 50px; }
@@ -52,6 +52,12 @@
 .nb-pft button.is-reset { color: var(--rd-pink-d); }
 .nb-add { flex: none; border: 2px solid var(--rd-line); border-radius: 14px; background: #fff; color: var(--rd-ink); padding: 8px 14px; font-weight: 900; font-size: 14.5px; box-shadow: 0 3px 0 var(--rd-line); cursor: pointer; }
 .nb-add:hover { border-color: #ffc2d1; box-shadow: 0 3px 0 #ffc2d1; }
+.nb-more-wrap { position: relative; flex: none; }
+.nb-more-btn { display: grid; place-items: center; width: 42px; height: 42px; border: 2px solid var(--rd-line); border-radius: 14px; background: #fff; color: #5c675f; box-shadow: 0 3px 0 var(--rd-line); cursor: pointer; }
+.nb-more-btn:hover { border-color: #ffc2d1; color: var(--rd-ink); }
+.nb-more-pop { position: absolute; right: 0; top: calc(100% + 8px); z-index: 22; min-width: 196px; background: #fff; border-radius: 16px; border: 1.5px solid #efeae4; box-shadow: 0 12px 32px rgba(47, 58, 51, .16); padding: 6px; }
+.nb-more-pop button { display: flex; align-items: center; gap: 8px; width: 100%; border: 0; border-radius: 11px; background: none; padding: 10px 12px; font-weight: 900; font-size: 14px; color: var(--rd-ink); text-align: left; cursor: pointer; }
+.nb-more-pop button:hover { background: #fff5f8; color: var(--rd-pink-d); }
 .nb-chips { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; margin-top: 12px; }
 .nb-chips button { display: flex; align-items: center; gap: 6px; border: 0; background: #fff0f4; color: #a8355a; border-radius: 99px; padding: 5px 8px 5px 12px; font-weight: 900; font-size: 13.5px; cursor: pointer; }
 .nb-chips i { font-style: normal; width: 18px; height: 18px; border-radius: 50%; background: #fff; display: grid; place-items: center; font-size: 12px; }
@@ -215,3 +221,5 @@
 .nb-w-card:hover { background: #fff0f4; color: var(--rd-pink-d); }
 .nb-w-rm { border: 0; background: none; font-weight: 800; font-size: 13px; color: var(--rd-mut); min-height: 36px; padding: 0 8px; border-radius: 10px; cursor: pointer; flex: none; }
 .nb-w-rm:hover { background: #fff0f4; color: var(--rd-pink-d); }
+
+.nb-words-acts { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }

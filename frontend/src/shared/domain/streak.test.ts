@@ -110,4 +110,16 @@ describe('automatic shield activity sources', () => {
     expect(loadUserProfile()).toMatchObject({ currentStreak: 2, lastStudyDate: '2026-09-22', streakFreezes: 1 });
     expect(JSON.parse(values.get('toeic_progress_bundle_v3')!).shieldDays[0].date).toBe('2026-09-23');
   });
+
+  it('auto-awards +1 bonus shield per 7-day streak up to a cap of 3', () => {
+    const data = empty();
+    data.profile.streakFreezes = 2;
+    data.sessions = ['2026-09-18', '2026-09-19', '2026-09-20', '2026-09-21', '2026-09-22', '2026-09-23', '2026-09-24']
+      .map((date, i) => ({
+        id: `s${i}`, date, skillType: 'LR', sessionType: 'FULL_TEST', testName: 'Test', durationMinutes: 120,
+        totalScore: 500, listeningScore: 250, readingScore: 250,
+        createdAt: now, updatedAt: now, deletedAt: null,
+      }));
+    expect(deriveStreak(data, '2026-09-24')).toMatchObject({ currentStreak: 7, longestStreak: 7, streakFreezes: 3 });
+  });
 });

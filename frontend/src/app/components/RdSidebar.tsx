@@ -52,8 +52,7 @@ export function RdSidebar({ activeTab, setActiveTab, dueMistakesCount, streak, n
     { key: 'league', label: 'Xếp hạng', tab: 'league', color: '#3b7ddd', lip: '#2a5fae', tint: '#2a6bc7', sub: leagueLabel || undefined }
   ];
   const tools: Item[] = [
-    { key: 'convert', label: 'Quy đổi điểm', tab: 'resources', color: 'var(--rd-teal)', lip: 'var(--rd-teal-d)', tint: 'var(--rd-teal-d)' },
-    { key: 'guide', label: 'Cách dùng app', tab: 'guide', color: 'var(--rd-gold)', lip: 'var(--rd-gold-d)', tint: 'var(--rd-gold-d)' }
+    { key: 'convert', label: 'Quy đổi điểm', tab: 'resources', color: 'var(--rd-teal)', lip: 'var(--rd-teal-d)', tint: 'var(--rd-teal-d)' }
   ];
   const { progress, worn } = soc;
   const starsLabel = progress.next ? `${progress.stars}/${progress.next.stars} sao` : 'Cấp cao nhất';
@@ -97,15 +96,19 @@ export function RdSidebar({ activeTab, setActiveTab, dueMistakesCount, streak, n
 
       <p className="rd-side__grp">CÔNG CỤ</p>
       {tools.map((it) => renderItem(it, true))}
-      {onOpenSettings && (
-        <button type="button" className="rd-side__it is-tool" style={{ ['--it-tint' as string]: 'var(--rd-teal-d)' }} onClick={onOpenSettings} aria-haspopup="dialog" aria-label="Tài khoản & cài đặt" title="Tài khoản & cài đặt">
-          <span className="rd-side__ic" style={{ background: '#9aa39d', boxShadow: '0 3px 0 #7b857f' }} aria-hidden="true">
-            <svg viewBox="0 0 24 24"><circle cx="12" cy="8" r="4.2" fill={W} /><path d="M3.5 21 C3.5 15.5 8 14 12 14 S20.5 15.5 20.5 21Z" fill={W} /></svg>
-          </span>
-          <span className="rd-side__lbl rd-side__set is-sync"><span>Tài khoản &amp; cài đặt</span>{syncLabel && <small aria-live="polite" className={`is-${syncTone}`}>{syncLabel}</small>}</span>
-          {syncLabel && <i className={`rd-side__dot is-${syncTone}${syncPulse ? ' is-pulse' : ''}`} title={syncLabel} aria-hidden="true" />}
-        </button>
-      )}
+      <div className="rd-side__row">
+        {onOpenSettings && (
+          <button type="button" className="rd-side__it is-tool rd-side__acct" style={{ ['--it-tint' as string]: 'var(--rd-teal-d)' }} onClick={onOpenSettings} aria-haspopup="dialog" aria-label="Tài khoản & cài đặt" title="Tài khoản & cài đặt">
+            <span className="rd-side__ic" style={{ background: '#9aa39d', boxShadow: '0 3px 0 #7b857f' }} aria-hidden="true">
+              <svg viewBox="0 0 24 24"><circle cx="12" cy="8" r="4.2" fill={W} /><path d="M3.5 21 C3.5 15.5 8 14 12 14 S20.5 15.5 20.5 21Z" fill={W} /></svg>
+            </span>
+            <span className="rd-side__lbl rd-side__set is-sync"><span>Tài khoản &amp; cài đặt</span>{syncLabel && <small aria-live="polite" className={`is-${syncTone}`}>{syncLabel}</small>}</span>
+            {syncLabel && <i className={`rd-side__dot is-${syncTone}${syncPulse ? ' is-pulse' : ''}`} title={syncLabel} aria-hidden="true" />}
+          </button>
+        )}
+        <button type="button" className={'rd-side__help' + (activeTab === 'guide' ? ' is-on' : '')} onClick={() => setActiveTab('guide')}
+          aria-current={activeTab === 'guide' ? 'page' : undefined} aria-label="Cách dùng app" title="Cách dùng app">?</button>
+      </div>
       </div>
 
       <button type="button" className="rd-side__me" onClick={() => setActiveTab('awards')}

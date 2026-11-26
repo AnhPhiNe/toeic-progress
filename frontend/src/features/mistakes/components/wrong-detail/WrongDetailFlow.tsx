@@ -351,6 +351,12 @@ export function WrongDetailFlow({ session, mistakes, onSave, onAdd, onReview, on
     const images = files.filter(file => file.type.startsWith('image/'));
     const item = currentRef.current;
     if (!images.length || shownScreen.current.name !== 'capture' || (!quick && !item) || !canReadPageImages) return;
+    if (images.some(file => file.type === 'image/jpeg' && file.size > 350_000)) setPhotoMode(true);
+    images.forEach(file => {
+      void fileExifOrientation(file).then(orientation => {
+        if (orientation !== 1 && activeFlow()) setPhotoMode(true);
+      });
+    });
     if (quick) {
       setError(''); setNote('');
       setAdding(true); addCount.current++;

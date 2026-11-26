@@ -1,6 +1,6 @@
 import React, { useEffect, useLayoutEffect, useRef, useState, type CSSProperties } from 'react';
 import { createPortal } from 'react-dom';
-import { Calendar, ChevronRight, Clock, Database, Download, LogOut, Minus, Plus, Quote, Shield, Trash2, Upload } from 'lucide-react';
+import { Calendar, ChevronRight, Database, Download, LogOut, Shield, Trash2, Upload } from 'lucide-react';
 import type { UserProfile } from '@/shared/types';
 import { Soc } from '@/shared/ui/soc/Soc';
 import { profileDisplayName } from '@/app/components/profileInitials';
@@ -13,7 +13,7 @@ import { DateField } from '@/shared/components/DateField';
 import { SettingsGoalEditor, SETTINGS_GOAL_POPOVER_ID } from './SettingsGoalEditor';
 
 /** Fields a desktop tile (or the header) edits on its own; "account" is the account popover. */
-export type DesktopSettingsField = 'name' | 'targetScore' | 'examDate' | 'dailyMinGoalMinutes' | 'streakFreezes' | 'motto' | 'account';
+export type DesktopSettingsField = 'name' | 'targetScore' | 'examDate' | 'account';
 export const SETTINGS_TILE_EDITOR_ID = 'settings-tile-editor';
 
 type SaveField = (patch: Partial<UserProfile>) => string | null;
@@ -145,35 +145,6 @@ function EditorActions({ error, onCancel, onSave, saveLabel = 'Lưu', extra }: {
   </>;
 }
 
-const STEPPERS = {
-  dailyMinGoalMinutes: { min: 5, max: 300, step: 5, presets: [15, 30, 45, 60, 90], label: 'Học mỗi ngày', unit: 'phút', hint: 'Thời gian tối thiểu để tính là đã học trong ngày.' },
-  streakFreezes: { min: 0, max: 5, step: 1, presets: [0, 1, 2, 3, 5], label: 'Khiên cứu chuỗi', unit: 'khiên', hint: 'Lỡ một ngày, khiên tự dùng để chuỗi không về 0 (tối đa 5).' }
-} as const;
-
-function NumberEditor({ field, value, onSave, onClose }: { field: keyof typeof STEPPERS; value: number; onSave: SaveField; onClose: () => void }) {
-  const s = STEPPERS[field];
-  const [n, setN] = useState(value);
-  const [error, setError] = useState('');
-  const clamp = (v: number) => Math.max(s.min, Math.min(s.max, v));
-  const save = () => { const message = onSave({ [field]: n }); if (message) setError(message); else onClose(); };
-  return <>
-    <h4 className="stb-pop__h">{s.label}</h4>
-    <p className="st-note">{s.hint}</p>
-    <div className="st-step stb-step">
-      <button type="button" className="st-step__b" aria-label="Giảm" disabled={n <= s.min} onClick={() => setN(v => clamp(v - s.step))}><Minus size={22} /></button>
-      <input type="text" inputMode="numeric" aria-label={`${s.label} (${s.unit})`} value={n} className="st-step__n"
-        onChange={e => setN(Number(e.target.value.replace(/\D/g, '') || 0))}
-        onBlur={() => setN(v => clamp(Math.round(v / s.step) * s.step))}
-        onKeyDown={e => { if (e.key === 'Enter') { e.preventDefault(); save(); } }} />
-      <button type="button" className="st-step__b" aria-label="Tăng" disabled={n >= s.max} onClick={() => setN(v => clamp(v + s.step))}><Plus size={22} /></button>
-    </div>
-    <div className="st-chips" role="group" aria-label="Mốc nhanh">
-      {s.presets.map(p => <button key={p} type="button" className="st-chip" aria-pressed={n === p} onClick={() => setN(p)}>{p}</button>)}
-    </div>
-    <EditorActions error={error} onCancel={onClose} onSave={save} />
-  </>;
-}
-
 function DateEditor({ value, onSave, onClose }: { value: string; onSave: SaveField; onClose: () => void }) {
   const [date, setDate] = useState(value);
   const [error, setError] = useState('');
@@ -184,17 +155,6 @@ function DateEditor({ value, onSave, onClose }: { value: string; onSave: SaveFie
     <DateField ariaLabel="Ngày thi" value={date} min={localDate(Date.now())} onChange={setDate} className="st-text mt-3" />
     <EditorActions error={error} onCancel={onClose} onSave={() => commit(date)}
       extra={value ? <button type="button" className="st-btn st-btn--quiet stb-acts__left" onClick={() => commit('')}>Bỏ ngày thi</button> : undefined} />
-  </>;
-}
-
-function MottoEditor({ value, onSave, onClose }: { value: string; onSave: SaveField; onClose: () => void }) {
-  const [text, setText] = useState(value);
-  const [error, setError] = useState('');
-  const save = () => { const message = onSave({ motto: text }); if (message) setError(message); else onClose(); };
-  return <>
-    <h4 className="stb-pop__h">Châm ngôn</h4>
-    <textarea aria-label="Châm ngôn" rows={3} maxLength={160} value={text} onChange={e => setText(e.target.value)} placeholder="Ví dụ: Mỗi ngày một đề" className="st-text mt-3" />
-    <EditorActions error={error} onCancel={onClose} onSave={save} />
   </>;
 }
 
@@ -232,8 +192,7 @@ export function SettingsDesktop(props: Props) {
   const today = localDate(Date.now());
   const exam = examState(profile.examDate, today);
   const goal = shownGoal(profile);
-  const freezes = Math.max(0, Math.min(5, profile.streakFreezes || 0));
-  const motto = profile.motto?.trim();
+  const freezes = Math.max(0, Math.min(3, profile.streakFreezes || 0));
 
   const editButton = (field: DesktopSettingsField, label: string, popId = SETTINGS_TILE_EDITOR_ID) => (
     <button type="button" ref={el => { buttons.current[field] = el; }} className="stb-ed" aria-label={`Đổi ${label}`}
@@ -318,24 +277,18 @@ export function SettingsDesktop(props: Props) {
                 ? <button type="button" ref={el => { buttons.current.examDate = el; }} className="stb-setd" aria-haspopup="dialog" aria-expanded={editing === 'examDate'}
                     aria-controls={editing === 'examDate' ? SETTINGS_TILE_EDITOR_ID : undefined} onClick={() => onEdit(editing === 'examDate' ? null : 'examDate')}>+ Đặt ngày thi</button>
                 : editButton('examDate', 'ngày thi'))}
-            {tile('dailyMinGoalMinutes', 'stb-min', <><Clock size={18} aria-hidden="true" />Học mỗi ngày</>, 'Học mỗi ngày', <>
-              <p className="stb-v">{profile.dailyMinGoalMinutes}<span className="stb-unit">′</span></p>
-              <p className="stb-s">phút · tối thiểu mỗi ngày</p>
-            </>)}
           </div>
 
           <p className="stb-glbl"><i style={{ background: '#ff7a1a' }} aria-hidden="true" />Chuỗi học</p>
           <div className="stb-tiles stb-tiles--streak">
-            {tile('streakFreezes', 'stb-shield', <><Shield size={18} aria-hidden="true" />Khiên cứu chuỗi</>, 'Khiên cứu chuỗi', (
+            <section className="stb-tile stb-shield" aria-labelledby="stb-k-streakFreezes">
+              <h4 className="stb-k" id="stb-k-streakFreezes"><Shield size={18} aria-hidden="true" />Khiên cứu chuỗi</h4>
               <p className="stb-shields" aria-label={`${freezes} khiên`}>
                 {Array.from({ length: Math.max(1, Math.min(freezes, 3)) }, (_, i) => <ShieldMark key={i} fill={freezes === 0 ? '#cfe3f7' : i === 0 ? '#1c8fe3' : '#8cc4f2'} />)}
                 <b aria-hidden="true">×{freezes}</b>
               </p>
-            ))}
-            {tile('motto', 'stb-quote', <><Quote size={18} aria-hidden="true" />Châm ngôn</>, 'Châm ngôn', <>
-              <p className={'stb-q' + (motto ? '' : ' is-empty')}>{motto || 'Chưa có châm ngôn. Một câu ngắn để tự nhắc mình mỗi ngày.'}</p>
-              <span className="stb-qm" aria-hidden="true">”</span>
-            </>)}
+              <p className="stb-s">Tự tặng +1 khiên mỗi mốc 7 ngày liền</p>
+            </section>
           </div>
 
           {(dataNotice || error) && <div className="stb-notes">{dataNotice}{error && <p role="alert" className="st-err">{error}</p>}</div>}
@@ -344,8 +297,20 @@ export function SettingsDesktop(props: Props) {
 
       <footer className="stb-foot" aria-label="Dữ liệu">
         <span className="stb-foot__lb"><span className="stb-foot__ic" aria-hidden="true"><Database size={16} /></span>Dữ liệu</span>
-        <button type="button" className="stb-dq" disabled={busy} onClick={onExport} title="Tải bản sao lưu JSON về máy"><Download size={16} aria-hidden="true" />Tải bản sao lưu</button>
-        <button type="button" className="stb-dq" disabled={busy} onClick={onPickBackup} title="Khôi phục dữ liệu từ tệp JSON"><Upload size={16} aria-hidden="true" />Nhập từ file</button>
+        {email ? (
+          <details className="stb-adv">
+            <summary>Dữ liệu nâng cao</summary>
+            <span className="stb-adv__row">
+              <button type="button" className="stb-dq" disabled={busy} onClick={onExport} title="Tải bản sao lưu JSON về máy"><Download size={16} aria-hidden="true" />Tải bản sao lưu</button>
+              <button type="button" className="stb-dq" disabled={busy} onClick={onPickBackup} title="Khôi phục dữ liệu từ tệp JSON"><Upload size={16} aria-hidden="true" />Nhập từ file</button>
+            </span>
+          </details>
+        ) : (
+          <>
+            <button type="button" className="stb-dq" disabled={busy} onClick={onExport} title="Tải bản sao lưu JSON về máy"><Download size={16} aria-hidden="true" />Tải bản sao lưu</button>
+            <button type="button" className="stb-dq" disabled={busy} onClick={onPickBackup} title="Khôi phục dữ liệu từ tệp JSON"><Upload size={16} aria-hidden="true" />Nhập từ file</button>
+          </>
+        )}
         {onLoadDemo && <button type="button" className="stb-dq" disabled={busy} onClick={onLoadDemo} title="Nạp dữ liệu mẫu để xem thử app">Dữ liệu mẫu</button>}
         {onReset && <>
           <span className="stb-foot__sp" />
@@ -359,9 +324,6 @@ export function SettingsDesktop(props: Props) {
 
       {editing === 'targetScore' && <SettingsGoalEditor phone={false} anchor={buttons.current.targetScore ?? null} beside={tiles.current.targetScore ?? dialog} profile={profile} onSaveField={onSaveGoal} onClose={stableClose} />}
       {popover('examDate', 'Ngày thi', <DateEditor value={profile.examDate} onSave={onSaveField} onClose={stableClose} />)}
-      {popover('dailyMinGoalMinutes', 'Học mỗi ngày', <NumberEditor field="dailyMinGoalMinutes" value={profile.dailyMinGoalMinutes} onSave={onSaveField} onClose={stableClose} />)}
-      {popover('streakFreezes', 'Khiên cứu chuỗi', <NumberEditor field="streakFreezes" value={profile.streakFreezes} onSave={onSaveField} onClose={stableClose} />)}
-      {popover('motto', 'Châm ngôn', <MottoEditor value={profile.motto ?? ''} onSave={onSaveField} onClose={stableClose} />)}
     </div>
   );
 }

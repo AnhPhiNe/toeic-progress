@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { BarChart3, BookOpen, Camera, ChevronRight, Home, Pencil, Plus, Timer, Type } from 'lucide-react';
+import { BarChart3, BookOpen, Camera, Home, Pencil, Plus, Timer } from 'lucide-react';
 import type { LucideIcon } from 'lucide-react';
 import type { NavTabId } from '@/shared/types';
 import { triggerHaptic } from '@/shared/lib/haptics';
@@ -13,7 +13,6 @@ interface Props {
   onRecordSession: () => void;
   onRecordPractice: () => void;
   onRecordMistake: () => void;
-  onRecordVocab: () => void;
 }
 
 const ITEMS: Array<{ tab: NavTabId; also?: NavTabId[]; label: string; Icon: LucideIcon; color: string }> = [
@@ -24,7 +23,7 @@ const ITEMS: Array<{ tab: NavTabId; also?: NavTabId[]; label: string; Icon: Luci
 ];
 
 /** Phone bottom navigation: Hôm nay, Hành trình, raised + Ghi, Luyện tập, Sổ tay. */
-export function PhoneNav({ activeTab, setActiveTab, dueMistakesCount, onRecordSession, onRecordPractice, onRecordMistake, onRecordVocab }: Props) {
+export function PhoneNav({ activeTab, setActiveTab, dueMistakesCount, onRecordSession, onRecordPractice, onRecordMistake }: Props) {
   const [recordOpen, setRecordOpen] = useState(false);
   const item = (i: (typeof ITEMS)[number]) => {
     const active = activeTab === i.tab || Boolean(i.also?.includes(activeTab));
@@ -65,11 +64,6 @@ export function PhoneNav({ activeTab, setActiveTab, dueMistakesCount, onRecordSe
               <i style={{ background: 'var(--rd-pink)' }}><Camera size={24} aria-hidden="true" /></i>Chụp câu sai<small>nhiều câu một lần</small>
             </button>
           </div>
-          <button type="button" className="ph-row" onClick={run(onRecordVocab)}>
-            <i className="ph-row__sm" style={{ background: 'var(--rd-blue)' }}><Type size={18} aria-hidden="true" /></i>
-            <span><b>Thêm từ vựng</b></span>
-            <ChevronRight size={20} className="ph-row__ar" aria-hidden="true" />
-          </button>
         </PhoneSheet>
       )}
     </>

@@ -7,7 +7,6 @@ import type { AppliedResultScore, ResultScoreStore } from './ResultScoreReview';
 import type { ScoreSource } from '../lib/fullTestScore';
 import type { PartTimingDurations, ResultImageTiming } from '@/shared/types';
 import { PartTimingModal, PartTimingStrip } from './PartTimingModal';
-import { DesktopManualEntry } from './DesktopManualEntry';
 import { useWrongNumberDraft, type WrongNumberDraft } from '../lib/wrongNumberDraft';
 
 const listening = (part: PartNumber) => part <= 4;
@@ -39,10 +38,6 @@ interface Props {
   /** false = AI-first view (paste a result image); true = the manual tools (200-question grid, typed numbers, scores). */
   manualOpen: boolean;
   onManualOpenChange: (open: boolean) => void;
-  /** The short manual view (official L/R plus a typed wrong list) between the paste view and the grid. */
-  minimalOpen: boolean;
-  onMinimalOpenChange: (open: boolean) => void;
-  onSections: (listening: string, reading: string) => void;
   /** Minutes of the total time once known (typed or read from an image); undefined while unrecorded. */
   knownMinutes?: number;
   onOpenDetails: () => void;
@@ -55,7 +50,7 @@ interface Props {
  * manual tools: all 200 questions on one screen, where clicking a number marks it wrong.
  * The score is worked out from the marks, so per-Part counts are never typed here.
  */
-export function DesktopFullTestBody({ wrong, onWrong, preview, onCounts, onOfficial, notes, setNotes, onScores, onScoresPending, scoreStore, scoreSource, manualListening, manualReading, manualTotal, onRevertScore, partDurations, onPartDurationsChange, numberDraft, onNumberDraft, onTiming, initialFiles, onInitialFilesHandled, manualOpen, onManualOpenChange, minimalOpen, onMinimalOpenChange, onSections, knownMinutes, onOpenDetails , meta}: Props) {
+export function DesktopFullTestBody({ wrong, onWrong, preview, onCounts, onOfficial, notes, setNotes, onScores, onScoresPending, scoreStore, scoreSource, manualListening, manualReading, manualTotal, onRevertScore, partDurations, onPartDurationsChange, numberDraft, onNumberDraft, onTiming, initialFiles, onInitialFilesHandled, manualOpen, onManualOpenChange, knownMinutes, onOpenDetails , meta}: Props) {
   const [timingModalOpen, setTimingModalOpen] = useState(false);
   const { typing, text, setText, setTyping, open: openNumbers, cancel: cancelNumbers } = useWrongNumberDraft(wrong, numberDraft, onNumberDraft);
   const [invalid, setInvalid] = useState<string[]>([]);
@@ -99,7 +94,7 @@ export function DesktopFullTestBody({ wrong, onWrong, preview, onCounts, onOffic
   };
 
   const hasMarks = wrong.length > 0;
-  const aiFirst = !manualOpen && !minimalOpen;
+  const aiFirst = !manualOpen;
   const showSummary = aiFirst && (hasMarks || isOfficial);
   const shownTotal = isOfficial ? preview?.totalScore ?? (manualTotal || '—') : hasMarks ? preview?.totalScore ?? '—' : '—';
   const shownL = isOfficial ? preview?.scaledListening ?? (manualListening || '—') : hasMarks ? preview?.scaledListening ?? '—' : '—';
@@ -152,19 +147,14 @@ export function DesktopFullTestBody({ wrong, onWrong, preview, onCounts, onOffic
 
       <div className={manualOpen ? 'flex flex-col gap-2 max-lg:order-first' : 'flex flex-col gap-2.5 max-lg:order-first'}>
         {manualOpen && (
-          <button type="button" onClick={() => { onManualOpenChange(false); onMinimalOpenChange(false); }}
+          <button type="button" onClick={() => onManualOpenChange(false)}
             className="rdg-back">
             ‹ Đọc ảnh kết quả
           </button>
         )}
-        {minimalOpen && !manualOpen && (
-          <DesktopManualEntry wrong={wrong} onWrong={onWrong} numberDraft={numberDraft} onNumberDraft={onNumberDraft}
-            listening={manualListening ?? ''} reading={manualReading ?? ''} officialTotal={scoreSource === 'MANUAL_TOTAL' ? manualTotal : undefined}
-            onSections={onSections} onBack={() => onMinimalOpenChange(false)} onGrid={() => onManualOpenChange(true)} />
-        )}
-        <div className={minimalOpen && !manualOpen ? 'hidden' : undefined}>
+        <div>
         <ResultImageButton
-          pasteEnabled={!minimalOpen || manualOpen}
+          pasteEnabled
           compactDrop={showSummary}
           flatCard={aiFirst}
           onTiming={onTiming}
@@ -173,11 +163,9 @@ export function DesktopFullTestBody({ wrong, onWrong, preview, onCounts, onOffic
           desktop
           dropzone={aiFirst}
           extraMenu={
-            aiFirst && !minimalOpen
+            aiFirst
               ? [
-                  { key: 'pick', label: 'Tự chọn câu sai', onClick: () => onManualOpenChange(true) },
-                  { key: 'counts', label: 'Số câu đúng mỗi Part', onClick: onCounts },
-                  { key: 'official', label: 'Điểm chính thức', onClick: onOfficial }
+                  { key: 'pick', label: 'Không có ảnh? Tự nhập tay →', onClick: () => onManualOpenChange(true) }
                 ]
               : manualOpen
                 ? [

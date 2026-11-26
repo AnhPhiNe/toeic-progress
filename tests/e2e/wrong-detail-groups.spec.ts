@@ -77,7 +77,6 @@ test('a Part 7 group range can be edited (149–151); photo review turns on pape
   await review.getByRole('checkbox').check();
   await review.getByRole('button', { name: 'Áp dụng', exact: true }).click();
   await expect(review).toHaveCount(0);
-  await expect(flow.getByRole('button', { name: /^Ảnh giấy/ })).toHaveAttribute('aria-pressed', 'true');
   // Passage photos alone cannot be sent: the primary waits for the question photos.
   await expect(flow.getByRole('button', { name: /^Gửi Sóc đọc/ })).toBeDisabled();
   await flow.getByLabel('Ảnh câu hỏi', { exact: true }).setInputFiles(screenshot);

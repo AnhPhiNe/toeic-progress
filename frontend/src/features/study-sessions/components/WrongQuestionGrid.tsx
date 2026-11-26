@@ -205,7 +205,6 @@ export function ResultImageButton({
   const [needsSignIn, setNeedsSignIn] = useState(false);
   const [busy, setBusy] = useState(false);
   const [photoMode, setPhotoMode] = useState(false);
-  const [multiStage, setMultiStage] = useState(false);
   const [staged, setStaged] = useState<Array<{ id: string; file: File; url: string; clarity: ClarityResult | null }>>([]);
   const [editingStagedId, setEditingStagedId] = useState<string | null>(null);
   const [burstOpen, setBurstOpen] = useState(false);
@@ -270,6 +269,7 @@ export function ResultImageButton({
       url: URL.createObjectURL(file),
       clarity: null as ClarityResult | null
     }));
+    if (accepted.some(f => f.type === 'image/jpeg' && f.size > 350_000)) setPhotoMode(true);
     setError(imgs.length > accepted.length ? `Đã thêm ${accepted.length} ảnh (tối đa ${MAX_RESULT_IMAGES} ảnh mỗi lần).` : '');
     setStaged(prev => [...prev, ...created]);
     const gen = lifecycle.current;
@@ -315,7 +315,7 @@ export function ResultImageButton({
       setStaged(prev => prev.map(item => item.id === id ? { ...item, clarity: result } : item));
     });
   };
-  const stagingActive = photoMode || multiStage || staged.length > 0;
+  const stagingActive = photoMode || staged.length > 0;
   useEffect(() => {
     let cancelled = false;
     void aiService.getAIConfiguration().then(config => {
@@ -337,7 +337,7 @@ export function ResultImageButton({
     let usePaperMode = overridePhotoMode ?? photoMode;
     try {
       for (const file of files) {
-        if ((await fileExifOrientation(file)) !== 1) {
+        if ((file.type === 'image/jpeg' && file.size > 350_000) || (await fileExifOrientation(file)) !== 1) {
           usePaperMode = true;
           if (isCurrent()) setPhotoMode(true);
           break;
@@ -395,7 +395,7 @@ export function ResultImageButton({
   };
   const handleIncomingFiles = (files: File[]) => {
     if (!files.length) return;
-    if (stagingActive) {
+    if (files.length >= 2 || stagingActive) {
       addStaged(files);
       return;
     }
@@ -409,6 +409,10 @@ export function ResultImageButton({
     if (!available || !initialFiles?.length || running.current) return;
     const files = initialFiles;
     onInitialFilesHandled?.();
+    if (files.length >= 2) {
+      addStaged(files);
+      return;
+    }
     void latestRead.current(files);
   }, [available, initialFiles, onInitialFilesHandled]);
   // On a computer the screenshot can be pasted with Ctrl+V anywhere in the form, not only on the button.
@@ -563,22 +567,6 @@ export function ResultImageButton({
         </div>
       ) : dropzone ? (
         <div className="rdl-ai-wrap">
-          <div className="rdl-toggles" role="group" aria-label="Tùy chọn đọc ảnh">
-            <button type="button" disabled={busy} aria-pressed={photoMode}
-              onClick={() => { triggerHaptic(4); setPhotoMode(value => !value); }}
-              className={'rdl-pill-sw' + (photoMode ? ' is-on' : '')}>
-              <span className="rdl-sw" aria-hidden="true"><i /></span>
-              <span>Phiếu tô giấy</span>
-            </button>
-            {!photoMode && staged.length === 0 && (
-              <button type="button" disabled={busy} aria-pressed={multiStage}
-                onClick={() => { triggerHaptic(4); setMultiStage(value => !value); }}
-                className={'rdl-pill-sw' + (multiStage ? ' is-on' : '')}>
-                <span className="rdl-sw" aria-hidden="true"><i /></span>
-                <span>Ghép nhiều ảnh</span>
-              </button>
-            )}
-          </div>
           <div role="button" tabIndex={0} className={'rdl-drop' + (dragOver ? ' is-drag' : '')}
             onClick={() => input.current?.click()}
             onDragOver={event => { event.preventDefault(); if (!dragOver) setDragOver(true); }}
@@ -643,20 +631,6 @@ export function ResultImageButton({
       )}
       {place(<>{!isTyping && !needsSignIn && (!desktop || clarityWarn) && (
         <div className="mt-2 flex flex-wrap items-center gap-2">
-          {!desktop && <button
-            type="button"
-            disabled={busy}
-            aria-pressed={photoMode}
-            onClick={() => { triggerHaptic(4); setPhotoMode(value => !value); }}
-            className={'inline-flex cursor-pointer items-center gap-2 rounded-full border px-2.5 py-1 text-[12px] font-extrabold transition-colors ' + (photoMode
-              ? 'border-[var(--rd-pink)] bg-[var(--rd-pink-l)] text-[var(--rd-pink-d)]'
-              : 'border-[var(--rd-line)] bg-white text-[#5c675f] hover:bg-[var(--rd-soft)]')}
-          >
-            <span aria-hidden="true" className={'relative inline-block h-4 w-7 rounded-full transition-colors ' + (photoMode ? 'bg-[var(--rd-pink)]' : 'bg-[#f1f3f1]')}>
-              <span className={'absolute top-0.5 left-0.5 h-3 w-3 rounded-full bg-white shadow-sm transition-transform ' + (photoMode ? 'translate-x-3' : '')} />
-            </span>
-            <span>Phiếu tô giấy</span>
-          </button>}
           {!desktop && (
             <button
               type="button"
@@ -783,12 +757,6 @@ export function ResultImageButton({
         <>
           {compactDrop && (
             <div className="rdl-toggles mt-2.5" role="group" aria-label="Tùy chọn đọc ảnh">
-              <button type="button" disabled={busy} aria-pressed={photoMode}
-                onClick={() => { triggerHaptic(4); setPhotoMode(value => !value); }}
-                className={'rdl-pill-sw' + (photoMode ? ' is-on' : '')}>
-                <span className="rdl-sw" aria-hidden="true"><i /></span>
-                <span>Phiếu tô giấy</span>
-              </button>
               <button type="button" disabled={busy} onClick={() => input.current?.click()} className="rdl-pill-sw">
                 <ImagePlus className="h-3.5 w-3.5 text-[var(--rd-pink-d)]" aria-hidden="true" />
                 <span>Chọn ảnh khác</span>
@@ -805,18 +773,26 @@ export function ResultImageButton({
             onAddFiles={picked => handleIncomingFiles(picked)}
           />
           {extraMenu && extraMenu.length > 0 && (
-            <div className="rdl-alt-bar" role="group" aria-label="Cách nhập khác">
-              <span className="rdl-alt-lbl">Hoặc tự nhập:</span>
-              <div className="rdl-alt-btns">
-                {extraMenu.map((item, idx) => (
-                  <button key={item.key} type="button" disabled={item.disabled}
-                    className={'rdl-alt-btn' + (idx === 0 ? ' is-main' : '')}
-                    onClick={item.onClick}>
-                    {item.label}
-                  </button>
-                ))}
+            extraMenu.length === 1 ? (
+              <div className="rdl-alt-bar">
+                <button type="button" disabled={extraMenu[0].disabled} className="rdl-alt-link" onClick={extraMenu[0].onClick}>
+                  {extraMenu[0].label}
+                </button>
               </div>
-            </div>
+            ) : (
+              <div className="rdl-alt-bar" role="group" aria-label="Cách nhập khác">
+                <span className="rdl-alt-lbl">Hoặc tự nhập:</span>
+                <div className="rdl-alt-btns">
+                  {extraMenu.map((item, idx) => (
+                    <button key={item.key} type="button" disabled={item.disabled}
+                      className={'rdl-alt-btn' + (idx === 0 ? ' is-main' : '')}
+                      onClick={item.onClick}>
+                      {item.label}
+                    </button>
+                  ))}
+                </div>
+              </div>
+            )
           )}
         </>
       )}

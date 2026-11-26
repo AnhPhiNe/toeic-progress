@@ -1,5 +1,5 @@
-import { useState, useMemo, useRef, useCallback, useEffect, useSyncExternalStore } from 'react';
-import { ImagePlus, X, AlertCircle } from 'lucide-react';
+import { useState, useMemo, useRef, useCallback, useEffect, useId, useSyncExternalStore } from 'react';
+import { ImagePlus, MoreHorizontal, X, AlertCircle } from 'lucide-react';
 import type { MistakeEntry, ErrorCategory, StudySession } from '@/shared/types';
 import { ERROR_CATEGORY_LABELS } from '@/shared/types';
 import { WrongDetailFlow } from '@/features/mistakes/components/wrong-detail/WrongDetailFlow';
@@ -35,6 +35,7 @@ import './notebook-rd.css';
 import './capture-rd.css';
 import { MistakeDetail, categoryShort, rowReviewLabel } from './MistakeDetail';
 import { savedVocabulary, toggleSavedWord, withSavedWords, withoutSavedWord } from '@/features/mistakes/lib/savedWords';
+import { SavedWordsFlashcard } from './SavedWordsFlashcard';
 import { Soc } from '@/shared/ui/soc/Soc';
 
 const NOTEBOOK_PAGE_SIZE = 8;
@@ -58,13 +59,14 @@ interface MistakeNotebookViewProps {
   onUpdateMistake: (entry: MistakeEntry, original: MistakeEntry) => void;
   /** Empty notebook: log a Full Test, whose Reading wrong questions become cards */
   onOpenSessionLogger?: () => void;
+  onStudyWords?: (count: number) => void;
 }
 
 /** A wrong question created by logging a test, as opposed to a card the learner wrote in the notebook. */
 const fromLoggedTest = (mistake: MistakeEntry) => Boolean(mistake.sessionId) && mistake.questionNumber !== undefined;
 
 export function MistakeNotebookView({ mistakes, sessions = [], initialSourceNames, initialPart, createRequest, dueCount, onStartReview, onAddMistake, onAddMistakes,
-  onMarkMastered, onReopenCards, onDeleteMistake, onUpdateMistake }: MistakeNotebookViewProps) {
+  onMarkMastered, onReopenCards, onDeleteMistake, onUpdateMistake, onStudyWords }: MistakeNotebookViewProps) {
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedPart, setSelectedPart] = useState<number | 'ALL'>(initialPart ?? 'ALL');
   // null: "Cần ôn" while something is due, otherwise "Tất cả" (as on phones).
@@ -85,6 +87,7 @@ export function MistakeNotebookView({ mistakes, sessions = [], initialSourceName
   // Computers (2026-11 redesign): a list of rows; a row opens one detail card.
   const [detailId, setDetailId] = useState<string | null>(null);
   const [nbTab, setNbTab] = useState<'mistakes' | 'words'>('mistakes');
+  const [flashcardOpen, setFlashcardOpen] = useState(false);
   const [manualOpen, setManualOpen] = useState(false);
   const [manualInitialRaw, setManualInitialRaw] = useState('');
   const [dragOver, setDragOver] = useState(false);
@@ -204,6 +207,7 @@ export function MistakeNotebookView({ mistakes, sessions = [], initialSourceName
 
   // Cards read from a screenshot have no explanation yet; the learner asks for one on the card (one AI use).
   const [explainingId, setExplainingId] = useState('');
+  const [blindDetail, setBlindDetail] = useState(false);
   const explanationMounted = useRef(true);
   useEffect(() => {
     explanationMounted.current = true;
@@ -340,10 +344,29 @@ export function MistakeNotebookView({ mistakes, sessions = [], initialSourceName
   const opened = detailId ? sourcedMistakes.find(m => m.id === detailId) : undefined;
   if (opened) {
     const p = cardProps(opened);
+    const navList = filteredMistakes.some(m => m.id === opened.id) ? filteredMistakes : sourcedMistakes;
+    const navIdx = navList.findIndex(m => m.id === opened.id);
+    const nav = navIdx >= 0 && navList.length > 1 ? {
+      index: navIdx,
+      total: navList.length,
+      onPrev: navIdx > 0 ? () => setDetailId(navList[navIdx - 1].id) : undefined,
+      onNext: navIdx < navList.length - 1 ? () => setDetailId(navList[navIdx + 1].id) : undefined
+    } : undefined;
     return (
       <div className="rd nb-page is-detail">
-        <MistakeDetail mistake={opened} testName={opened.sourceTestName ?? undefined} onBack={() => setDetailId(null)} actions={p} />
-        {overlays}
+        <MistakeDetail
+          mistake={opened}
+          testName={opened.sourceTestName ?? undefined}
+          onBack={() => setDetailId(null)}
+          actions={p}
+          nav={nav}
+          blind={blindDetail}
+          onToggleBlind={() => setBlindDetail(v => !v)}
+        />
+        {flashcardOpen && savedWordsList.length > 0 && (
+        <SavedWordsFlashcard words={savedWordsList} onClose={() => setFlashcardOpen(false)} onComplete={count => onStudyWords?.(count)} />
+      )}
+      {overlays}
       </div>
     );
   }
@@ -413,7 +436,10 @@ export function MistakeNotebookView({ mistakes, sessions = [], initialSourceName
               <h2>{savedWordsList.length} từ cần nhớ</h2>
               <p>Các từ bạn đã bấm “+ Ôn” trong thẻ câu sai. Bấm vào thẻ gốc để xem lại ngữ cảnh trong đề.</p>
             </div>
-            <button type="button" className="nb-ghost" onClick={() => setNbTab('mistakes')}>← Về danh sách câu sai</button>
+            <div className="nb-words-acts">
+              <button type="button" className="rd-btn rd-btn--pink" onClick={() => setFlashcardOpen(true)}>Ôn {savedWordsList.length} từ</button>
+              <button type="button" className="nb-ghost" onClick={() => setNbTab('mistakes')}>← Về danh sách câu sai</button>
+            </div>
           </div>
           <ul className="nb-words-list">
             {savedWordsList.map(item => (
@@ -501,7 +527,7 @@ export function MistakeNotebookView({ mistakes, sessions = [], initialSourceName
                 </div>
               )}
             </div>
-            <button type="button" className="nb-add" onClick={() => openManual()}><span aria-hidden="true">✏️</span> Tự gõ một câu</button>
+            <MoreNotebookMenu onManual={() => openManual()} />
           </div>
           {pickedFilters > 0 && (
             <div className="nb-chips">
@@ -551,7 +577,38 @@ export function MistakeNotebookView({ mistakes, sessions = [], initialSourceName
           )}
         </>
       )}
+      {flashcardOpen && savedWordsList.length > 0 && (
+        <SavedWordsFlashcard words={savedWordsList} onClose={() => setFlashcardOpen(false)} onComplete={count => onStudyWords?.(count)} />
+      )}
       {overlays}
+    </div>
+  );
+}
+
+function MoreNotebookMenu({ onManual }: { onManual: () => void }) {
+  const [open, setOpen] = useState(false);
+  const box = useRef<HTMLDivElement>(null);
+  const menuId = useId();
+  useEffect(() => {
+    if (!open) return;
+    const onDown = (e: MouseEvent) => { if (!box.current?.contains(e.target as Node)) setOpen(false); };
+    const onKey = (e: KeyboardEvent) => { if (e.key === 'Escape') setOpen(false); };
+    document.addEventListener('mousedown', onDown);
+    document.addEventListener('keydown', onKey);
+    return () => { document.removeEventListener('mousedown', onDown); document.removeEventListener('keydown', onKey); };
+  }, [open]);
+  return (
+    <div className="nb-more-wrap" ref={box}>
+      <button type="button" className="nb-more-btn" aria-label="Thêm thao tác" aria-haspopup="menu" aria-expanded={open} aria-controls={menuId} onClick={() => setOpen(v => !v)}>
+        <MoreHorizontal size={18} aria-hidden="true" />
+      </button>
+      {open && (
+        <div className="nb-more-pop" role="menu" id={menuId}>
+          <button type="button" role="menuitem" onClick={() => { setOpen(false); onManual(); }}>
+            <span aria-hidden="true">✏️</span> Tự gõ một câu
+          </button>
+        </div>
+      )}
     </div>
   );
 }

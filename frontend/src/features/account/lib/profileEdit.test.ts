@@ -29,7 +29,7 @@ describe('settings profile edits', () => {
   it('rejects deleted profiles and invalid settings rather than writing malformed data', () => {
     const snapshot = defaultProfile();
     expect(() => mergeProfileEdit({ ...snapshot, deletedAt: '2026-10-10T12:00:00Z' }, snapshot, snapshot)).toThrow(/Hồ sơ đã thay đổi/);
-    for (const edited of [{ ...snapshot, name: ' ' }, { ...snapshot, targetScore: 802 }, { ...snapshot, dailyMinGoalMinutes: 0 }, { ...snapshot, streakFreezes: 6 }]) {
+    for (const edited of [{ ...snapshot, name: ' ' }, { ...snapshot, targetScore: 802 }, { ...snapshot, targetScore: 995 }, { ...snapshot, targetScore: 5 }]) {
       expect(() => mergeProfileEdit(snapshot, snapshot, edited)).toThrow();
     }
   });

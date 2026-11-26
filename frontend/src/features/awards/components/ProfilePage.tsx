@@ -54,14 +54,21 @@ export function ProfilePage({ bundle, today, owner, onUpdateProfile, rank, onGoT
   const saved = wornGear(bundle.profile.socGear, lvl, owned);
   const [coat, setCoat] = useState<SocCoatId>(identity.coat);
   const [gear, setGear] = useState<SocGearId[]>(saved);
+  const [phoneTab, setPhoneTab] = useState<'tudo' | 'huyhieu'>('tudo');
   const savedKey = saved.join(',') + identity.coat;
   useEffect(() => { setGear(wornGear(bundle.profile.socGear, lvl, owned)); setCoat(identity.coat); }, [savedKey]); // eslint-disable-line react-hooks/exhaustive-deps
-  const dirty = gear.join(',') !== saved.join(',') || coat !== identity.coat;
   const [justSaved, setJustSaved] = useState(false);
-  const save = () => {
-    onUpdateProfile(p => ({ ...withSocCoat(p, coat), socGear: sanitizeGear(gear, lvl, owned) }));
+  const saveTimer = useRef<number | null>(null);
+  useEffect(() => () => { if (saveTimer.current !== null) window.clearTimeout(saveTimer.current); }, []);
+  const flashSaved = () => {
     setJustSaved(true);
-    window.setTimeout(() => setJustSaved(false), 1500);
+    if (saveTimer.current !== null) window.clearTimeout(saveTimer.current);
+    saveTimer.current = window.setTimeout(() => setJustSaved(false), 1500);
+  };
+  const selectCoat = (nextCoat: SocCoatId) => {
+    setCoat(nextCoat);
+    onUpdateProfile(p => withSocCoat(p, nextCoat));
+    flashSaved();
   };
 
   const items = useMemo<WardItem[]>(() => {
@@ -85,7 +92,13 @@ export function ProfilePage({ bundle, today, owner, onUpdateProfile, rank, onGoT
     }
     return out;
   }, [gear, lvl, owned, rank]);
-  const toggle = (item: WardItem) => { if (item.state === 'on' || item.state === 'free') setGear(g => toggleGear(g, item.id as SocGearId, lvl, owned)); };
+  const toggle = (item: WardItem) => {
+    if (item.state !== 'on' && item.state !== 'free') return;
+    const nextGear = toggleGear(gear, item.id as SocGearId, lvl, owned);
+    setGear(nextGear);
+    onUpdateProfile(p => ({ ...p, socGear: sanitizeGear(nextGear, lvl, owned) }));
+    flashSaved();
+  };
 
   // Level-up gift (from Thành tích): the newly unlocked item drops onto Sóc once.
   const [gifts, setGifts] = useState<number[]>([]);
@@ -111,8 +124,8 @@ export function ProfilePage({ bundle, today, owner, onUpdateProfile, rank, onGoT
     </div>
   );
   const nameEditor = <SocName name={identity.name} onSave={name => onUpdateProfile(p => withSocName(p, name))} />;
-  const wardrobe = <Wardrobe items={items} coat={coat} setCoat={setCoat} toggle={toggle} />;
-  const saveBtn = <button type="button" className="rd-btn pf-save" onClick={save} disabled={!dirty && !justSaved}>{justSaved ? 'Đã lưu' : 'Lưu bộ đồ'}</button>;
+  const wardrobe = <Wardrobe items={items} coat={coat} setCoat={selectCoat} toggle={toggle} />;
+  const savedPill = justSaved ? <span className="pf-saved-pill" role="status">Đã mặc</span> : null;
   const [open, setOpen] = useState<TierBadge | null>(null);
   const badgeGrid = <BadgeGrid badges={badges} selected={open?.id} onOpen={setOpen} />;
   const detail = open && <BadgeDetail badge={open} isPhone={isPhone} onClose={() => setOpen(null)} onGo={tab => { setOpen(null); onGoTab(tab); }} />;
@@ -125,14 +138,14 @@ export function ProfilePage({ bundle, today, owner, onUpdateProfile, rank, onGoT
         <h1 id="pf-title">Hồ sơ của Sóc</h1>
       </header>
       <section className="pf-card pf-pid">
-        <Soc state="idle" size={62} gear={saved} coat={identity.coat} />
+        {phoneTab !== 'tudo' && <Soc state="idle" size={62} gear={saved} coat={identity.coat} />}
         <div className="pf-pid__body">{nameEditor}{levelCard}</div>
       </section>
-      <PhoneTabs tiers={tiers} render={tab => tab === 'tudo' ? (
+      <PhoneTabs tab={phoneTab} onTab={setPhoneTab} tiers={tiers} render={tab => tab === 'tudo' ? (
         <>
           <div className="pf-stage" dangerouslySetInnerHTML={{ __html: roomScene(358, 150, 96, true, gear, coat) }} />
+          {savedPill && <div className="pf-saved-row">{savedPill}</div>}
           {wardrobe}
-          <div className={'pf-pfoot' + (dirty || justSaved ? ' is-sticky' : '')}>{saveBtn}</div>
         </>
       ) : badgeGrid} />
       {detail}{gift}
@@ -149,7 +162,7 @@ export function ProfilePage({ bundle, today, owner, onUpdateProfile, rank, onGoT
           <div className="pf-room__lvl">{levelCard}</div>
         </div>
         <div className="pf-ward__side">
-          <div className="pf-ward__h"><h2>Tủ đồ</h2><small>Chọn để Sóc mặc thử</small>{saveBtn}</div>
+          <div className="pf-ward__h"><h2>Tủ đồ</h2><small>Chọn để Sóc mặc ngay</small>{savedPill}</div>
           {wardrobe}
         </div>
       </section>
@@ -165,13 +178,12 @@ export function ProfilePage({ bundle, today, owner, onUpdateProfile, rank, onGoT
   );
 }
 
-function PhoneTabs({ tiers, render }: { tiers: number; render: (tab: 'tudo' | 'huyhieu') => ReactNode }) {
-  const [tab, setTab] = useState<'tudo' | 'huyhieu'>('tudo');
+function PhoneTabs({ tab, onTab, tiers, render }: { tab: 'tudo' | 'huyhieu'; onTab: (t: 'tudo' | 'huyhieu') => void; tiers: number; render: (tab: 'tudo' | 'huyhieu') => ReactNode }) {
   return (
     <>
       <div className="pf-seg" role="tablist" aria-label="Hồ sơ">
-        <button type="button" role="tab" aria-selected={tab === 'tudo'} className={tab === 'tudo' ? 'is-on' : ''} onClick={() => setTab('tudo')}>Tủ đồ</button>
-        <button type="button" role="tab" aria-selected={tab === 'huyhieu'} className={tab === 'huyhieu' ? 'is-on' : ''} onClick={() => setTab('huyhieu')}>Huy hiệu · {tiers}/60</button>
+        <button type="button" role="tab" aria-selected={tab === 'tudo'} className={tab === 'tudo' ? 'is-on' : ''} onClick={() => onTab('tudo')}>Tủ đồ</button>
+        <button type="button" role="tab" aria-selected={tab === 'huyhieu'} className={tab === 'huyhieu' ? 'is-on' : ''} onClick={() => onTab('huyhieu')}>Huy hiệu · {tiers}/60</button>
       </div>
       <div role="tabpanel">{render(tab)}</div>
     </>
@@ -230,26 +242,64 @@ function TierBar({ badge }: { badge: TierBadge }) {
   return <span className="pf-tb3" aria-hidden="true">{segmentFill(badge).map((f, k) => <u key={k} style={{ ['--f' as string]: `${Math.round(f * 100)}%`, ['--c' as string]: TIER_COLORS[k] }} />)}</span>;
 }
 
-function BadgeGrid({ badges, selected, onOpen }: { badges: TierBadge[]; selected?: string; onOpen: (b: TierBadge) => void }) {
+const GROUP_COLOR: Record<TierBadge['group'], string> = Object.fromEntries(GROUPS.map(g => [g.key, g.color])) as Record<TierBadge['group'], string>;
+
+function BadgeButton({ b, selected, onOpen }: { b: TierBadge; selected?: string; onOpen: (b: TierBadge) => void }) {
   return (
-    <div className="pf-cats">
-      {GROUPS.map(g => (
-        <div key={g.key} className="pf-cat" style={{ ['--cc' as string]: g.color }}>
-          <h3>{g.name}</h3>
-          <div className="pf-bgrid">
-            {badges.filter(b => b.group === g.key).map(b => (
-              <button key={b.id} type="button" className={'pf-bt' + (b.tier ? '' : ' is-locked') + (selected === b.id ? ' is-sel' : '')} onClick={() => onOpen(b)}
-                aria-label={`${b.name}: ${badgeLabel(b)}`}>
-                <Medal badge={b} size={60} />
-                <span className="pf-bn">{b.name}</span>
-                <TierBar badge={b} />
-                <span className="pf-nx">{badgeLines(b).map((line, i) => <span key={i} className={i ? 'pf-nx__p' : 'pf-nx__t'}>{line}</span>)}</span>
-              </button>
-            ))}
-          </div>
+    <button key={b.id} type="button" className={'pf-bt' + (b.tier ? '' : ' is-locked') + (selected === b.id ? ' is-sel' : '')}
+      style={{ ['--cc' as string]: GROUP_COLOR[b.group] }} onClick={() => onOpen(b)}
+      aria-label={`${b.name}: ${badgeLabel(b)}`}>
+      <Medal badge={b} size={60} />
+      <span className="pf-bn">{b.name}</span>
+      <TierBar badge={b} />
+      <span className="pf-nx">{badgeLines(b).map((line, i) => <span key={i} className={i ? 'pf-nx__p' : 'pf-nx__t'}>{line}</span>)}</span>
+    </button>
+  );
+}
+
+function BadgeGrid({ badges, selected, onOpen }: { badges: TierBadge[]; selected?: string; onOpen: (b: TierBadge) => void }) {
+  const [showAll, setShowAll] = useState(false);
+  const featured = useMemo(() => {
+    const earned = badges.filter(b => b.tier > 0);
+    const needed = Math.max(3, 6 - earned.length);
+    const closest = [...badges]
+      .filter(b => b.tier === 0)
+      .sort((a, b) => (segmentFill(b)[0] ?? 0) - (segmentFill(a)[0] ?? 0))
+      .slice(0, needed);
+    return [...earned, ...closest];
+  }, [badges]);
+
+  const groups = useMemo(
+    () => GROUPS.map(g => ({ ...g, items: badges.filter(b => b.group === g.key) })),
+    [badges]
+  );
+
+  return (
+    <>
+      {showAll ? (
+        <div className="pf-cats">
+          {groups.map(g => (
+            <div key={g.key} className="pf-cat" style={{ ['--cc' as string]: g.color }}>
+              <h3>{g.name}</h3>
+              <div className="pf-bgrid">
+                {g.items.map(b => <BadgeButton key={b.id} b={b} selected={selected} onOpen={onOpen} />)}
+              </div>
+            </div>
+          ))}
         </div>
-      ))}
-    </div>
+      ) : (
+        <div className="pf-bgrid is-compact">
+          {featured.map(b => <BadgeButton key={b.id} b={b} selected={selected} onOpen={onOpen} />)}
+        </div>
+      )}
+      {(showAll || featured.length < badges.length) && (
+        <div className="pf-all-wrap">
+          <button type="button" className="pf-all-btn" onClick={() => setShowAll(v => !v)}>
+            {showAll ? 'Thu gọn huy hiệu' : `Xem toàn bộ ${badges.length} huy hiệu`}
+          </button>
+        </div>
+      )}
+    </>
   );
 }
 

@@ -17,8 +17,10 @@ interface Base { phone: boolean; testName: string; onClose: () => void }
 /** Ghi đề (done) → Nghe → Chụp → Soát. */
 export type Step = 2 | 3 | 4;
 
-export function StepHead({ phone, title, sub, step, back, onClose }: { phone: boolean; title: string; sub?: ReactNode; step: Step; back?: () => void; onClose: () => void }) {
-  const steps = <span className={phone ? 'cv-dots' : 'cv-steps'} aria-hidden="true">{[1, 2, 3, 4].map(index => <i key={index} className={index <= step ? 'is-on' : ''} />)}</span>;
+export function StepHead({ phone, title, sub, step, progressRatio, back, onClose }: { phone: boolean; title: string; sub?: ReactNode; step: Step; progressRatio?: number; back?: () => void; onClose: () => void }) {
+  const steps = progressRatio !== undefined
+    ? <span className={phone ? 'cv-pbar is-phone' : 'cv-pbar'} aria-hidden="true"><i style={{ width: `${Math.round(Math.max(0, Math.min(1, progressRatio)) * 100)}%` }} /></span>
+    : <span className={phone ? 'cv-dots' : 'cv-steps'} aria-hidden="true">{[1, 2, 3, 4].map(index => <i key={index} className={index <= step ? 'is-on' : ''} />)}</span>;
   if (phone) {
     return (
       <header className="cv-head is-phone">

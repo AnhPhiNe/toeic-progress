@@ -58,7 +58,6 @@ import {
   resetToCleanSlate,
   loadVocabLog,
   upsertVocabLog,
-  deleteVocabLog,
   recordDailyActivity,
   getTodayDateString 
 } from '@/shared/data/storage';
@@ -69,7 +68,6 @@ import { commitMistakeBatch } from '@/features/mistakes/lib/persistMistakeBatch'
 import { applyDraftSync } from '@/features/mistakes/lib/mistakeDrafts';
 import { MISTAKES_CHANGED_EVENT } from '@/features/mistakes/services/explanationQueue';
 import { gradeLatestMistake, mergeMistakeEdit } from '@/features/mistakes/lib/mistakeUpdates';
-import type { VocabDetails } from '@/features/vocabulary/lib/vocabularyModel';
 import { persistSessionResult } from '@/features/study-sessions/lib/persistSessionResult';
 import { undoMistakeDeletion, undoMistakeGrade } from '@/features/mistakes/lib/persistMistakeUndo';
 import { AISignInPrompt } from '@/features/account/components/AISignInPrompt';
@@ -88,6 +86,7 @@ const OPEN_SIGN_IN = typeof window !== 'undefined' && takeSignInParam();
 
 export const App: React.FC = () => {
   // Khởi tạo lazy: đọc bộ nhớ một lần khi mount, không phải ở mỗi lần render
+  const isPhone = useMediaQuery('(max-width: 767px)');
   const [profile, setProfile] = useState<UserProfile>(loadUserProfile);
   const [sessions, setSessions] = useState<StudySession[]>(loadStudySessions);
   const [mistakes, setMistakes] = useState<MistakeEntry[]>(loadMistakes);
@@ -179,7 +178,7 @@ export const App: React.FC = () => {
   };
   const [isSessionModalOpen, setIsSessionModalOpen] = useState(false);
   // Giá trị điền sẵn khi form Nhập Điểm được mở từ Bộ đếm nhịp hoặc trang Phân tích (SPEC 4.3)
-  const [sessionPrefill, setSessionPrefill] = useState<{ durationMinutes?: number; sessionType?: 'FULL_TEST' | 'PART_PRACTICE' | 'VOCAB'; partNumber?: number; markWrong?: boolean; initialFiles?: File[] } | undefined>(undefined);
+  const [sessionPrefill, setSessionPrefill] = useState<{ durationMinutes?: number; sessionType?: 'FULL_TEST' | 'PART_PRACTICE'; partNumber?: number; markWrong?: boolean; initialFiles?: File[] } | undefined>(undefined);
   // Có giá trị = form Nhập Điểm đang ở chế độ sửa bản ghi này
   const [editingSession, setEditingSession] = useState<StudySession | null>(null);
   const [editingPacing, setEditingPacing] = useState<{ run: PacingRun; owner: string | null } | null>(null);
@@ -233,8 +232,25 @@ export const App: React.FC = () => {
     return () => window.removeEventListener('keydown', handleKeyDown);
   }, [isSessionModalOpen, isSettingsModalOpen, editingPacing]);
 
+  // Dán ảnh kết quả (Ctrl+V) trên Desktop ở các trang chính để mở thẳng form đọc ảnh.
+  useEffect(() => {
+    if (isPhone) return;
+    const handlePaste = (e: ClipboardEvent) => {
+      if (activeTab !== 'dashboard' && activeTab !== 'history' && activeTab !== 'analytics') return;
+      if (isSessionModalOpen || isSettingsModalOpen || editingPacing || document.querySelector('[role="dialog"], [role="alertdialog"]')) return;
+      const target = e.target as HTMLElement | null;
+      if (target && (target instanceof HTMLInputElement || target instanceof HTMLTextAreaElement || target instanceof HTMLSelectElement || target.isContentEditable)) return;
+      const files = Array.from(e.clipboardData?.files ?? []).filter(f => f.type.startsWith('image/'));
+      if (!files.length) return;
+      e.preventDefault();
+      openSessionLogger({ sessionType: 'FULL_TEST', initialFiles: files });
+    };
+    window.addEventListener('paste', handlePaste);
+    return () => window.removeEventListener('paste', handlePaste);
+  }, [isPhone, activeTab, isSessionModalOpen, isSettingsModalOpen, editingPacing]);
+
   // Mở form Nhập Điểm, kèm giá trị điền sẵn nếu nơi gọi có cung cấp
-  const openSessionLogger = (prefill?: { durationMinutes?: number; sessionType?: 'FULL_TEST' | 'PART_PRACTICE' | 'VOCAB'; partNumber?: number; initialFiles?: File[] }) => {
+  const openSessionLogger = (prefill?: { durationMinutes?: number; sessionType?: 'FULL_TEST' | 'PART_PRACTICE'; partNumber?: number; initialFiles?: File[] }) => {
     setEditingSession(null);
     setSessionPrefill(prefill);
     setIsSessionModalOpen(true);
@@ -310,16 +326,6 @@ export const App: React.FC = () => {
     setMistakes(loadMistakes());
     setProfile(loadUserProfile());
   }, []);
-
-  const handleSaveVocab = (date: string, count: number, details?: VocabDetails) => {
-    setVocabLog(upsertVocabLog(date, count, details));
-    setProfile(recordDailyActivity(profile, date));
-  };
-
-  const handleDeleteVocab = (date: string) => {
-    setVocabLog(deleteVocabLog(`vocab:${date}`));
-    setProfile(loadUserProfile());
-  };
 
   /**
    * Thay thế một buổi học đã có. KHÔNG đi qua addStudySession: sửa số liệu
@@ -467,7 +473,6 @@ export const App: React.FC = () => {
   const studiedDates = actualStudyDates({ sessions, vocabLog, pacingRuns: loadPacingRuns() }, today);
   const hasStudiedToday = studiedDates.has(today) || sessions.some(s => s.date === today) || vocabLog.some(item => item.date === today) || profile.lastStudyDate === today;
   // Hôm nay (desktop) reads the whole bundle; the state above is what changes it.
-  const isPhone = useMediaQuery('(max-width: 767px)');
   const bundle = useMemo(() => readDataBundle(), [profile, sessions, mistakes, vocabLog, dataVersion]); // eslint-disable-line react-hooks/exhaustive-deps
   const streakNow = useMemo(() => deriveStreakWithExtras(bundle, today, extraStudyDates(bundle.profile, bundle.mistakes)).currentStreak, [bundle, today]);
   const showToday = activeTab === 'dashboard' && !isPhone;
@@ -493,7 +498,6 @@ export const App: React.FC = () => {
     }
     else if (task.kind === 'PART_TIMER' && task.part) navigateToPacing(`PART_${task.part}` as ReadingPartType);
     else if (task.kind === 'FULL_TEST') openSessionLogger();
-    else if (task.kind === 'WORD_CARDS') openSessionLogger({ sessionType: 'VOCAB' });
   };
   // First-visit page tips wait while anything else holds the screen.
   const tipsHeld = isSessionModalOpen || savedTest !== null || reviewCards !== null || practiceFocus || isSettingsModalOpen || editingPacing !== null || aiSignInOpen || Boolean(account.pendingTransfer);
@@ -624,6 +628,7 @@ export const App: React.FC = () => {
                 onDeleteMistake={handleDeleteMistake}
                 onUpdateMistake={handleUpdateMistake}
                 onOpenSessionLogger={() => openSessionLogger()}
+                onStudyWords={count => { setVocabLog(upsertVocabLog(today, count)); setProfile(recordDailyActivity(profile, today)); }}
               />
             )}
             {activeTab === 'resources' && (
@@ -697,6 +702,7 @@ export const App: React.FC = () => {
               onDeleteMistake={handleDeleteMistake}
               onUpdateMistake={handleUpdateMistake}
               onOpenSessionLogger={() => openSessionLogger()}
+              onStudyWords={count => { setVocabLog(upsertVocabLog(today, count)); setProfile(recordDailyActivity(profile, today)); }}
             />
           </main>
         ) : null}
@@ -715,7 +721,6 @@ export const App: React.FC = () => {
           onRecordSession={() => openSessionLogger({ sessionType: 'FULL_TEST' })}
           onRecordPractice={() => openSessionLogger({ sessionType: 'PART_PRACTICE' })}
           onRecordMistake={openNewMistake}
-          onRecordVocab={() => openSessionLogger({ sessionType: 'VOCAB' })}
         />
       )}
 
@@ -726,8 +731,6 @@ export const App: React.FC = () => {
         isOpen={isSessionModalOpen}
         onClose={closeSessionLogger}
         onSaveSession={handleSaveSession}
-        onSaveVocab={handleSaveVocab}
-        onDeleteVocab={handleDeleteVocab}
         sessions={sessions}
         prefill={sessionPrefill}
         editingSession={editingSession}

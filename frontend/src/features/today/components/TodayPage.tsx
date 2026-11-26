@@ -10,7 +10,7 @@ import { daysUntil } from '@/features/journey/lib/scoreJourney';
 import { Soc } from '@/shared/ui/soc/Soc';
 import { socLook } from '@/features/awards/lib/outfit';
 import { pickTodayTasks, type TodayTask } from '../lib/todayTasks';
-import { addHabit, clampWeeklyGoal, extraStudyDates, removeHabit, toggleHabit } from '../lib/habits';
+import { clampWeeklyGoal, extraStudyDates } from '../lib/habits';
 import { PREVIEW_TARGET, hasChosenGoal, profileWithGoal, todayMode } from '../lib/goalSetup';
 import { buildRoadModel } from '../lib/roadModel';
 import { FirstDayPanel } from './FirstDayPanel';
@@ -161,7 +161,6 @@ export function TodayPage({ bundle, today, onStartTask, onStartSuggestion, onPra
           rest={rest}
           onWake={wake}
           tasks={tasks}
-          habits={profile.habits ?? []}
           today={today}
           week={week}
           goal={goal}
@@ -171,12 +170,6 @@ export function TodayPage({ bundle, today, onStartTask, onStartSuggestion, onPra
           onToggleSuggestion={id => onUpdateProfile(p => toggleSuggestion(p, id, today))}
           onSkipTask={skipTask}
           onPracticeMore={onPracticeMore}
-          onToggleHabit={id => onUpdateProfile(p => toggleHabit(p, id, today))}
-          onAddHabit={title => onUpdateProfile(p => addHabit(p, title, crypto.randomUUID()))}
-          onRemoveHabit={id => onUpdateProfile(p => removeHabit(p, id))}
-          suggestOff={profile.suggestOff ?? []}
-          onToggleSuggest={kind => onUpdateProfile(p => { const off = p.suggestOff ?? []; return { ...p, suggestOff: off.includes(kind) ? off.filter(k => k !== kind) : [...off, kind] }; })}
-          onSetWeeklyGoal={days => onUpdateProfile(p => ({ ...p, weeklyGoalDays: clampWeeklyGoal(days) }))}
         /> : <FirstDayPanel task={firstTask} firstStep={estimate.values[0]} week={week} onStartTask={onStartTask} hideCta={mode === 'choose'} />}
       </aside>
 

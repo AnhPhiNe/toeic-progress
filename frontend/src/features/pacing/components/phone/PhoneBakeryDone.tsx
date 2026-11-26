@@ -1,4 +1,6 @@
 import { useEffect, useState } from 'react';
+import { playChime } from '@/shared/lib/sound';
+import { triggerHaptic } from '@/shared/lib/haptics';
 import { STRAWBERRY_EVERY, strawberryCount } from '../../lib/bakery';
 import { CakePlate, ChefSoc } from '../BakeryArt';
 
@@ -18,7 +20,12 @@ interface Props {
 /** Ra lò on phones: one card with the decorated cake, wrong-count stepper and the time from the oven. */
 export function PhoneBakeryDone(p: Props) {
   const [ready, setReady] = useState(false);
-  useEffect(() => { const id = requestAnimationFrame(() => setReady(true)); return () => cancelAnimationFrame(id); }, []);
+  useEffect(() => {
+    playChime('complete');
+    triggerHaptic(10);
+    const id = requestAnimationFrame(() => setReady(true));
+    return () => cancelAnimationFrame(id);
+  }, []);
   const correct = Math.max(0, p.questions - p.wrong);
   return (
     <div className="rd bk-done pp pp-done">

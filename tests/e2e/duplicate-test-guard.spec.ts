@@ -1,7 +1,7 @@
 import { expect, test, type Page } from '@playwright/test';
 import { openScoreLogger } from './helpers/nav';
 import { chooseMore } from './helpers/manualEntry';
-import { phoneLogger, phoneManualScore } from './helpers/sessionForm';
+import { phoneLogger, phoneManualScore, useOfficialScore } from './helpers/sessionForm';
 
 /** One Full Test already logged today: "ETS Dup 04", 960. */
 async function seedToday(page: Page) {
@@ -24,13 +24,14 @@ async function desktopLog(page: Page, typedName: string) {
   await seedToday(page);
   await openScoreLogger(page);
   const form = page.getByRole('dialog', { name: 'Ghi điểm', exact: true });
-  await chooseMore(form, /^Tự chọn câu sai/);
-  await form.getByRole('button', { name: /^‹ Quay lại/ }).click();
+  await chooseMore(form, /^Không có ảnh\? Tự nhập tay/);
+  await form.getByRole('button', { name: /Sửa đề & giờ/ }).click();
   await form.locator('#session-test-name').fill(typedName);
   await form.getByRole('heading', { name: 'Ghi điểm' }).click();
-  await form.getByLabel('Listening', { exact: true }).fill('450');
-  await form.getByLabel('Reading', { exact: true }).fill('420');
-  await form.getByRole('button', { name: 'Lưu điểm', exact: true }).click();
+  await useOfficialScore(form);
+  await form.getByLabel('Điểm Nghe /495', { exact: true }).fill('450');
+  await form.getByLabel('Điểm Đọc /495', { exact: true }).fill('420');
+  await form.getByRole('button', { name: /^(Lưu điểm|Lưu kết quả)$/ }).click();
   return form;
 }
 
@@ -49,6 +50,8 @@ test('desktop: "Mở đề cũ" opens the saved test in the editor instead of sa
   await form.getByRole('button', { name: 'Mở đề cũ', exact: true }).click();
   const editor = page.getByRole('dialog', { name: 'Sửa kết quả', exact: true });
   await expect(editor).toBeVisible();
+  const editMeta = editor.locator('.rdl-meta-bar button');
+  if (await editMeta.isVisible()) await editMeta.click();
   await expect(editor.locator('#session-test-name')).toHaveValue('ETS Dup 04');
   await expect(editor.getByLabel('Điểm Nghe /495')).toHaveValue('495');
   expect(await sessions(page)).toHaveLength(1);
@@ -60,7 +63,7 @@ test('desktop: changing the name clears the warning and saves at once', async ({
   await form.locator('#session-test-name').fill('ETS Dup 05');
   await form.getByRole('heading', { name: 'Ghi điểm' }).click();
   await expect(form.getByRole('button', { name: 'Vẫn lưu', exact: true })).toHaveCount(0);
-  await form.getByRole('button', { name: 'Lưu điểm', exact: true }).click();
+  await form.getByRole('button', { name: /^(Lưu điểm|Lưu kết quả)$/ }).click();
   await expect(form).toHaveCount(0);
   await expect.poll(async () => (await sessions(page)).map(session => session.testName).sort()).toEqual(['ETS Dup 04', 'ETS Dup 05']);
 });

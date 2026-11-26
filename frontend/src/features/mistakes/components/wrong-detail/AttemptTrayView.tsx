@@ -9,7 +9,6 @@ import type { ShotItem } from '@/features/mistakes/lib/captureShots';
 import { ScreenshotSuggestBar } from './ScreenshotSuggestBar';
 import { CaptureZone, PhotoPreview } from './CaptureZone';
 import { BurstCameraModal } from './BurstCameraModal';
-import { PaperToggle } from './CaptureShotView';
 import type { SentThumb, Staged, Zone } from './views';
 import './capture-part.css';
 
@@ -76,9 +75,9 @@ interface Props {
 export function AttemptTrayView(props: Props) {
   const {
     phone, session, readingNumbers, outstanding, remaining, unread, capturePart, targetNumber, items,
-    staged, clarity, photoMode, canRead, adding, anyReading, readyCount, reviewCount, savedTotal,
+    staged, clarity, canRead, adding, anyReading, readyCount, reviewCount, savedTotal,
     listeningLeft, contextDoubts, jobs, sent, note, error,
-    onCapturePart, onTargetNumber, onPhotoMode, onAddFiles, onCameraAdd, onRemoveStaged, onMoveStaged,
+    onCapturePart, onTargetNumber, onAddFiles, onCameraAdd, onRemoveStaged, onMoveStaged,
     onEditPhoto, onSubmit, onSaveReady, onReview, onManual, onListening, onSwitchToShots, onClose
   } = props;
 
@@ -113,7 +112,7 @@ export function AttemptTrayView(props: Props) {
           <h2 id="wd-title">Chụp trang chữa bài</h2>
           <p className="attempt-sub">
             <strong>{session.testName}</strong>
-            <span>{session.date} · {unread.length > 0 ? `Còn ${unread.length} câu Đọc` : readyCount > 0 ? `${readyCount} câu chờ lưu` : `Còn ${remaining.length} câu Đọc`}</span>
+            <span>{/^\d{4}-\d{2}-\d{2}$/.test(session.date) ? session.date.split('-').reverse().join('/') : session.date} · {unread.length > 0 ? `Còn ${unread.length} câu Đọc` : readyCount > 0 ? `${readyCount} câu chờ lưu` : `Còn ${remaining.length} câu Đọc`}</span>
           </p>
         </div>
         <div className="attempt-head-acts">
@@ -136,43 +135,56 @@ export function AttemptTrayView(props: Props) {
       </header>
 
       <div className={'wd-body cv-attempt' + (phone ? ' is-phone' : '')}>
-        <div className="attempt-bar">
-          <div className="attempt-parts" role="group" aria-label="Chụp theo Part">
-            <span className="cpi-sw-lbl">Đọc</span>
-            {[0, ...presentParts].map(part => {
-              const count = countOf(part);
-              return (
-                <button
-                  key={part}
-                  type="button"
-                  className="cpi-sw-btn is-read"
-                  aria-pressed={capturePart === part}
-                  onClick={() => { onCapturePart(part); onTargetNumber(''); }}
-                >
-                  {part ? `P${part}` : 'Tất cả'}
-                  {count > 0 && <em aria-hidden="true">{count}</em>}
-                </button>
-              );
-            })}
+        {!(phone && readingNumbers.length <= 10) && (
+          <div className="attempt-bar">
+            <div className="attempt-parts" role="group" aria-label="Chụp theo Part">
+              <span className="cpi-sw-lbl">Đọc</span>
+              {[0, ...presentParts].map(part => {
+                const count = countOf(part);
+                return (
+                  <button
+                    key={part}
+                    type="button"
+                    className="cpi-sw-btn is-read"
+                    aria-pressed={capturePart === part}
+                    onClick={() => { onCapturePart(part); onTargetNumber(''); }}
+                  >
+                    {part ? `P${part}` : 'Tất cả'}
+                    {count > 0 && <em aria-hidden="true">{count}</em>}
+                  </button>
+                );
+              })}
+            </div>
+            {remaining.length > 0 && (
+              <button
+                type="button"
+                className="attempt-q-toggle"
+                aria-expanded={numbersOpen}
+                onClick={() => setNumbersOpen(value => !value)}
+              >
+                <span>Xem {remaining.length} câu cần chữa</span>
+                <ChevronDown size={15} className={numbersOpen ? 'is-rot' : ''} aria-hidden="true" />
+              </button>
+            )}
           </div>
-          {remaining.length > 0 && (
-            <button
-              type="button"
-              className="attempt-q-toggle"
-              aria-expanded={numbersOpen}
-              onClick={() => setNumbersOpen(value => !value)}
-            >
-              <span>Xem {remaining.length} câu cần chữa</span>
-              <ChevronDown size={15} className={numbersOpen ? 'is-rot' : ''} aria-hidden="true" />
-            </button>
-          )}
-        </div>
+        )}
 
-        {numbersOpen && remaining.length > 0 && (
+        {numbersOpen && !(phone && readingNumbers.length <= 10) && remaining.length > 0 && (
           <div className="attempt-numbers" role="region" aria-label="Danh sách câu cần chữa">
             {remaining.map(number => (
               <span key={number} className={unreadSet.has(number) ? '' : 'is-ready'} title={unreadSet.has(number) ? 'Chưa đọc ảnh' : 'Đã đọc, chờ lưu'}>
                 {!unreadSet.has(number) && <Check size={12} strokeWidth={3} aria-hidden="true" />}
+                {number}
+              </span>
+            ))}
+          </div>
+        )}
+
+        {phone && readingNumbers.length <= 10 && remaining.length > 0 && (
+          <div className="attempt-mstrip" role="region" aria-label="Câu cần chữa">
+            {remaining.map(number => (
+              <span key={number} className={unreadSet.has(number) ? '' : 'is-ready'}>
+                {!unreadSet.has(number) && <Check size={11} strokeWidth={3} aria-hidden="true" />}
                 {number}
               </span>
             ))}
@@ -209,7 +221,6 @@ export function AttemptTrayView(props: Props) {
           onMove={onMoveStaged}
           onEdit={onEditPhoto}
           onPreview={phone ? (_zone, idx) => setPreviewIndex(idx) : undefined}
-          headRight={<PaperToggle on={photoMode} onChange={onPhotoMode} />}
         />
 
         <input

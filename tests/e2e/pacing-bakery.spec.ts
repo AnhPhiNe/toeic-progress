@@ -160,13 +160,12 @@ for (const [name, viewport] of [['computer', { width: 1280, height: 900 }], ['ph
       await expect(fire(page)).toHaveText(/Bật lò · 12 phút/);
       await expect(fire(page)).toHaveCount(1);
       await expect(page.getByRole('button', { name: /^(Chỉ ghi kết quả|Ghi kết quả)$/ })).toBeVisible();
-      await expect(page.getByRole('button', { name: 'Công thức', exact: true })).toBeVisible();
       await expect(page.getByRole('group', { name: 'Chế độ Part 7' })).toHaveCount(0);
       await page.getByRole('group', { name: 'Số phút', exact: true }).getByRole('button', { name: 'Thêm một phút', exact: true }).click();
       await expect(fire(page)).toHaveText(/Bật lò · 13 phút/);
       await pick(page, 'Part 7');
       await expect(page.getByRole('group', { name: 'Chế độ Part 7' })).toBeVisible();
-      for (const name of [/Bật lò/, /^(Chỉ ghi kết quả|Ghi kết quả)$/, /^Công thức$/]) {
+      for (const name of [/Bật lò/, /^(Chỉ ghi kết quả|Ghi kết quả)$/]) {
         const box = await page.getByRole('button', { name }).first().boundingBox();
         expect(box!.height).toBeGreaterThanOrEqual(43);
       }

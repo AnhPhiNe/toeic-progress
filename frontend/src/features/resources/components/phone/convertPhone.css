@@ -46,3 +46,5 @@
 .cvp-r.is-on { font-size: 30px; color: var(--c); }
 .cvp-note { margin: 8px 0 0; font-weight: 700; font-size: 14px; line-height: 1.5; color: var(--rd-mut); }
 .cvp-note a { color: var(--rd-blue); font-weight: 900; text-decoration: underline; padding: 6px 2px; }
+
+.cvp__share { display: inline-flex; align-items: center; justify-content: center; gap: 6px; width: 100%; margin-top: 10px; border: 2px solid #e6e9e6; background: #fff; border-radius: 14px; padding: 10px 14px; font: 900 14px var(--rd-font); color: var(--rd-ink); cursor: pointer; }

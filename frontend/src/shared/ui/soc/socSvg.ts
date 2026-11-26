@@ -63,7 +63,7 @@ const BROWS: Partial<Record<SocState, string>> = {
 /** The two short paws at the belly: the only arms Sóc ever has. */
 const PAWS = `<ellipse cx="88" cy="202" rx="10" ry="16" transform="rotate(-38 88 202)" fill="${F2}"/><ellipse cx="132" cy="202" rx="10" ry="16" transform="rotate(38 132 202)" fill="${F2}"/>`;
 
-const BOWL=`<g transform="translate(110 210)"><g class="bwhisk"><g transform="rotate(18 0 -6)"><path d="M-4 -6 C-13 -18 -11 -38 0 -44 C11 -38 13 -18 4 -6" fill="none" stroke="#b9bcc4" stroke-width="3"/><path d="M0 -6 C-4 -20 -4 -38 0 -44 C4 -38 4 -20 0 -6" fill="none" stroke="#b9bcc4" stroke-width="3"/><rect x="-3.5" y="-62" width="7" height="20" rx="3.5" fill="#a26c43"/></g></g><path d="M-36 -6 H36 C34 18 20 28 0 28 C-20 28 -34 18 -36 -6Z" fill="#fff" stroke="#e6e0f5" stroke-width="3"/><path d="M-33 2 H33" stroke="#ffd1dc" stroke-width="4"/><ellipse cx="0" cy="-6" rx="36" ry="8" fill="#fff6e0" stroke="#e6e0f5" stroke-width="3"/><ellipse cx="0" cy="-5" rx="28" ry="5" fill="#ffe2a8"/></g>`;
+const BOWL=`<g transform="translate(110 210)"><path d="M-36 -6 H36 C34 18 20 28 0 28 C-20 28 -34 18 -36 -6Z" fill="#fff" stroke="#e6e0f5" stroke-width="3"/><path d="M-33 2 H33" stroke="#ffd1dc" stroke-width="4"/><ellipse cx="0" cy="-6" rx="36" ry="8" fill="#fff6e0" stroke="#e6e0f5" stroke-width="3"/><ellipse cx="0" cy="-5" rx="28" ry="5" fill="#ffe2a8"/></g>`;
 /** SVG markup for Sóc in one state (Nâu cam, no gear); layered groups animate via soc.css. */
 export function socSvg(s: SocState): string {
   const ear = s === 'zzz' ? 30 : s === 'sad' ? 18 : 0;

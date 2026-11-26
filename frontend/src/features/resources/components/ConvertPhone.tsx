@@ -7,6 +7,7 @@ import {
   PRACTICE_SCORE_SOURCE, SCORE_REFERENCE_SOURCES, convertRawToListeningScore, convertRawToReadingScore, getConcordanceByToeic, getPracticeScoreRange
 } from '@/shared/domain/etsScoring';
 import type { StudySession } from '@/shared/types';
+import { ShareCardButton } from '@/shared/components/ShareCardButton';
 import { buildJourney, clampCount, convertTests } from '../lib/convert';
 import { buildBandBar } from '../lib/convertBand';
 import { ScoreWheel } from './phone/ScoreWheel';
@@ -116,6 +117,7 @@ export function ConvertPhone({ sessions, targetScore, gear = [], onBack }: Conve
         <p className="cvp__cap">
           Khoảng IIBC 2023: Nghe {listeningRange.min}–{listeningRange.max} · Đọc {readingRange.min}–{readingRange.max}
         </p>
+        <ShareCardButton data={{ total, listening: scaledListening, reading: scaledReading, gear, subtitle: tier ? `Mức ${tier.cefr}` : undefined }} className="cvp__share" label="Chia sẻ ảnh điểm" />
       </section>
 
       {infoOpen && (

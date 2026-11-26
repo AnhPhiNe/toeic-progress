@@ -24,7 +24,7 @@ test('a page tip shows once, and Xem lại on Cách dùng app brings it back', a
   await page.waitForTimeout(1500);
   await expect(tip).toBeHidden();
 
-  await page.getByRole('button', { name: 'Cách dùng app' }).click();
+  await page.getByRole('button', { name: 'Cách dùng app', exact: true }).click();
   await expect(page).toHaveURL(/\/cach-dung$/);
   await expect(page.getByText('Đã xem 1/3 trang')).toBeVisible();
   await page.getByRole('button', { name: 'Xem lại' }).click();

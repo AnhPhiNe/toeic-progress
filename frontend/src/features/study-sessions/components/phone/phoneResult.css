@@ -32,3 +32,5 @@
   background: rgba(255,255,255,.22); color: #fff; font: 900 14.5px var(--rd-font); text-align: left; cursor: pointer; }
 .plr-ask .soc { flex: none; }
 .plr-ask i { margin-left: auto; font-style: normal; opacity: .8; }
+
+.plr-share { display: inline-flex; align-items: center; justify-content: center; gap: 6px; margin-top: 10px; border: 1.5px solid rgba(255,255,255,.45); background: rgba(255,255,255,.16); color: #fff; border-radius: 99px; padding: 8px 16px; font: 900 13.5px var(--rd-font); cursor: pointer; }

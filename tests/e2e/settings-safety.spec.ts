@@ -16,18 +16,21 @@ async function backup(page: Page) {
 
 test('settings tiles are labelled, a draft survives background activity and each save merges only its own field', async ({ page }) => {
   const modal = await open(page);
-  // Every setting is a labelled tile with its own Đổi; the goal's opens the same editor as Hôm nay.
-  for (const name of ['Điểm mục tiêu', 'Ngày thi', 'Học mỗi ngày', 'Khiên cứu chuỗi', 'Châm ngôn']) {
+  // Editable setting tiles expose Đổi; streak shield is earned automatically and read-only.
+  for (const name of ['Điểm mục tiêu', 'Ngày thi']) {
     const tile = modal.getByRole('region', { name, exact: true });
     await expect(tile).toHaveCount(1);
     await expect(tile.getByRole('button', { name: /^(Đổi|\+ Đặt ngày thi)/ })).toHaveCount(1);
   }
+  const shieldTile = modal.getByRole('region', { name: 'Khiên cứu chuỗi', exact: true });
+  await expect(shieldTile).toContainText('Tự tặng +1 khiên mỗi mốc 7 ngày liền');
+  await expect(shieldTile.getByRole('button')).toHaveCount(0);
   await expect(modal.getByRole('button', { name: 'Lưu cài đặt', exact: true })).toHaveCount(0);
   await modal.getByRole('button', { name: 'Đổi tên', exact: true }).click();
   await modal.getByLabel('Tên của bạn', { exact: true }).fill('Draft learner');
   await page.evaluate(() => {
     const bundle = JSON.parse(localStorage.getItem('toeic_progress_bundle_v3')!);
-    bundle.profile.motto = 'Synced elsewhere';
+    bundle.profile.examDate = '2029-11-15';
     localStorage.setItem('toeic_progress_bundle_v3', JSON.stringify(bundle));
     // A background profile update (picking a goal on Hôm nay) exercises App's current profile props while the modal stays open.
     [...document.querySelectorAll<HTMLButtonElement>('.td-gc-chip')].find(button => button.textContent?.trim() === '700')!.click();
@@ -40,19 +43,19 @@ test('settings tiles are labelled, a draft survives background activity and each
   await expect(modal).toBeVisible();
   const bundle = await page.evaluate(() => JSON.parse(localStorage.getItem('toeic_progress_bundle_v3')!));
   expect(bundle.profile.name).toBe('Draft learner');
-  expect(bundle.profile.motto).toBe('Synced elsewhere');
+  expect(bundle.profile.examDate).toBe('2029-11-15');
   expect(bundle.profile.targetScore).toBe(700);
-  // The motto tile shows the synced motto and saves only the motto.
-  const motto = modal.getByRole('region', { name: 'Châm ngôn', exact: true });
-  await expect(motto).toContainText('Synced elsewhere');
-  await motto.getByRole('button', { name: 'Đổi châm ngôn', exact: true }).click();
-  const editor = page.getByRole('dialog', { name: 'Châm ngôn', exact: true });
-  await editor.getByLabel('Châm ngôn', { exact: true }).fill('Mỗi ngày một đề');
+  // The examDate tile shows the synced date and saves only the examDate.
+  const examTile = modal.getByRole('region', { name: 'Ngày thi', exact: true });
+  await expect(examTile).toContainText('15/11/2029');
+  await examTile.getByRole('button', { name: 'Đổi ngày thi', exact: true }).click();
+  const editor = page.getByRole('dialog', { name: 'Ngày thi', exact: true });
+  await editor.getByLabel('Ngày thi', { exact: true }).fill('2030-05-20');
   await editor.getByRole('button', { name: 'Lưu', exact: true }).click();
   await expect(editor).toHaveCount(0);
-  await expect(motto).toContainText('Mỗi ngày một đề');
+  await expect(examTile).toContainText('20/05/2030');
   const after = await page.evaluate(() => JSON.parse(localStorage.getItem('toeic_progress_bundle_v3')!).profile);
-  expect(after).toMatchObject({ name: 'Draft learner', motto: 'Mỗi ngày một đề', targetScore: 700 });
+  expect(after).toMatchObject({ name: 'Draft learner', examDate: '2030-05-20', targetScore: 700 });
 });
 
 test('same-field conflicts and storage failures preserve the draft with an error', async ({ page }) => {

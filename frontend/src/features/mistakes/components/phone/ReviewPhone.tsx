@@ -1,6 +1,9 @@
 import { useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
+import { Volume2, VolumeX } from 'lucide-react';
 import type { MistakeEntry } from '@/shared/types';
+import { isSoundMuted, playChime, setSoundMuted } from '@/shared/lib/sound';
+import { triggerHaptic } from '@/shared/lib/haptics';
 import { useModalA11y } from '@/shared/hooks/useModalA11y';
 import { resolveQuizOptions } from '@/features/mistakes/lib/quizOptions';
 import { readQuestion } from '@/features/mistakes/lib/questionText';
@@ -44,7 +47,24 @@ export function ReviewPhone({ cards, onClose, onGrade }: Props) {
   const [lastGrade, setLastGrade] = useState<LastGrade | null>(null);
   const [error, setError] = useState('');
   const [fullOpen, setFullOpen] = useState(false);
+  const [combo, setCombo] = useState(0);
+  const [muted, setMuted] = useState(isSoundMuted);
+  const doneSoundRef = useRef(false);
   const done = index >= cards.length;
+  useEffect(() => {
+    if (done && cards.length > 0 && !doneSoundRef.current) {
+      doneSoundRef.current = true;
+      playChime('complete');
+      triggerHaptic(12);
+    } else if (!done) {
+      doneSoundRef.current = false;
+    }
+  }, [done, cards.length]);
+  const toggleMute = () => {
+    const next = !muted;
+    setSoundMuted(next);
+    setMuted(next);
+  };
   const card = cards[Math.min(index, cards.length - 1)];
   const quiz = useMemo(() => card ? resolveQuizOptions(card) : null, [card]);
   const quizMode = Boolean(quiz && quiz.correctIndex >= 0 && quiz.options.length >= 2);
@@ -56,11 +76,24 @@ export function ReviewPhone({ cards, onClose, onGrade }: Props) {
   const showPassage = card ? card.part >= 6 && Boolean(context) : false;
   const [more, setMore] = useState(false);
 
-  const pick = (letter: string) => { if (!revealed) { setPicked(letter); setRevealed(true); } };
+  const pick = (letter: string) => {
+    if (revealed) return;
+    setPicked(letter);
+    setRevealed(true);
+    if (letter === answer) {
+      playChime('correct');
+      triggerHaptic(8);
+      setCombo(c => c + 1);
+    } else {
+      playChime('wrong');
+      setCombo(0);
+    }
+  };
   const grade = (understood: boolean) => {
     if (!card) return;
     try {
       const rating = reviewRating(understood, picked, answer);
+      if (rating === 'AGAIN') setCombo(0);
       const graded = onGrade(card, rating);
       setTally(t => rating === 'AGAIN' ? { ...t, again: t.again + 1 } : { ...t, got: t.got + 1 });
       setLastGrade(graded.undo ? { index, rating, picked, undo: graded.undo } : null);
@@ -128,6 +161,10 @@ export function ReviewPhone({ cards, onClose, onGrade }: Props) {
       <div className="pr-top">
         <button type="button" className="pr-x" aria-label="Thoát ôn tập" onClick={onClose}>×</button>
         <span className="pr-bar" role="progressbar" aria-valuemin={0} aria-valuemax={cards.length} aria-valuenow={index}><i style={{ width: `${(index + (revealed ? 0.5 : 0)) / cards.length * 100}%` }} /></span>
+        {combo >= 2 && <span className="rv-combo is-sm" aria-live="polite">🔥×{combo}</span>}
+        <button type="button" className="rv-mute" onClick={toggleMute} aria-label={muted ? 'Bật âm thanh' : 'Tắt âm thanh'}>
+          {muted ? <VolumeX size={16} aria-hidden="true" /> : <Volume2 size={16} aria-hidden="true" />}
+        </button>
         {lastGrade && <button type="button" className="pr-undo" onClick={undoLast}>↶ Hoàn tác</button>}
         <small>{index + 1}/{cards.length}</small>
       </div>

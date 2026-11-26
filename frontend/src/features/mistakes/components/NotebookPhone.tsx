@@ -31,6 +31,7 @@ import { ManualQuestionModal } from './ManualQuestionModal';
 import { categoryShort, rowReviewLabel } from './MistakeDetail';
 import { CardDetailPhone } from './phone/CardDetailPhone';
 import { savedVocabulary, toggleSavedWord, withSavedWords, withoutSavedWord } from '@/features/mistakes/lib/savedWords';
+import { SavedWordsFlashcard } from './SavedWordsFlashcard';
 import { CapturePhone } from './phone/CapturePhone';
 import { CameraIcon, PhoneNotebookEmpty } from './phone/PhoneNotebookEmpty';
 import { categoryChip, PART_COLORS } from './phone/partStyle';
@@ -59,14 +60,16 @@ export interface NotebookPhoneProps {
   onDeleteMistake: (id: string) => MistakeUndoAction | void;
   onUpdateMistake: (entry: MistakeEntry, original: MistakeEntry) => void;
   onOpenSessionLogger?: () => void;
+  onStudyWords?: (count: number) => void;
 }
 
 type Tab = 'due' | 'mastered' | 'all' | 'words';
 const STEP = 30;
 
 export function NotebookPhone({ mistakes, sessions = [], initialSourceNames, initialPart, createRequest, dueCount, onStartReview, onAddMistake, onAddMistakes,
-  onMarkMastered, onReopenCards, onDeleteMistake, onUpdateMistake }: NotebookPhoneProps) {
+  onMarkMastered, onReopenCards, onDeleteMistake, onUpdateMistake, onStudyWords }: NotebookPhoneProps) {
   const [tab, setTab] = useState<Tab | null>(null);
+  const [flashcardOpen, setFlashcardOpen] = useState(false);
   const [searchOpen, setSearchOpen] = useState(false);
   const [filterOpen, setFilterOpen] = useState(false);
   const [term, setTerm] = useState('');
@@ -121,6 +124,7 @@ export function NotebookPhone({ mistakes, sessions = [], initialSourceNames, ini
   // Writing explanations and deleting, as on computers.
   const { containerRef: captchaRef, getToken, remove: removeCaptcha } = useTurnstile();
   const [explainingId, setExplainingId] = useState('');
+  const [blindDetail, setBlindDetail] = useState(false);
   const mounted = useRef(true);
   useEffect(() => { mounted.current = true; return () => { mounted.current = false; }; }, []);
   useSyncExternalStore(subscribeExplanations, explanationsVersion);
@@ -305,10 +309,29 @@ export function NotebookPhone({ mistakes, sessions = [], initialSourceNames, ini
         catch (reason) { notify(reason instanceof Error ? reason.message : 'Chưa cập nhật được từ đã lưu.', true); }
       }
     } as const;
+    const navList = rows.some(m => m.id === detail.id) ? rows : sourced;
+    const navIdx = navList.findIndex(m => m.id === detail.id);
+    const nav = navIdx >= 0 && navList.length > 1 ? {
+      index: navIdx,
+      total: navList.length,
+      onPrev: navIdx > 0 ? () => setDetailId(navList[navIdx - 1].id) : undefined,
+      onNext: navIdx < navList.length - 1 ? () => setDetailId(navList[navIdx + 1].id) : undefined
+    } : undefined;
     return (
       <div className="rd pn pn-detail">
-        <CardDetailPhone mistake={detail} testName={detail.sourceTestName ?? undefined} onBack={() => setDetailId(null)} actions={actions} />
-        {overlays}
+        <CardDetailPhone
+          mistake={detail}
+          testName={detail.sourceTestName ?? undefined}
+          onBack={() => setDetailId(null)}
+          actions={actions}
+          nav={nav}
+          blind={blindDetail}
+          onToggleBlind={() => setBlindDetail(v => !v)}
+        />
+        {flashcardOpen && savedWordsList.length > 0 && (
+        <SavedWordsFlashcard words={savedWordsList} onClose={() => setFlashcardOpen(false)} onComplete={count => onStudyWords?.(count)} />
+      )}
+      {overlays}
       </div>
     );
   }
@@ -376,7 +399,14 @@ export function NotebookPhone({ mistakes, sessions = [], initialSourceNames, ini
           )}
 
           {activeTab === 'words' ? (
-            <ul className="pn-words" aria-label="Từ đã lưu">
+            <>
+              {savedWordsList.length > 0 && (
+                <div className="pn-words-top">
+                  <span><b>{savedWordsList.length}</b> từ cần nhớ</span>
+                  <button type="button" className="rd-btn rd-btn--pink pn-words-study" onClick={() => setFlashcardOpen(true)}>Ôn {savedWordsList.length} từ</button>
+                </div>
+              )}
+              <ul className="pn-words" aria-label="Từ đã lưu">
               {savedWordsList.map(item => (
                 <li key={item.word.toLowerCase()}>
                   <button type="button" className="pn-word-go" onClick={() => setDetailId(item.cardId)}>
@@ -388,6 +418,7 @@ export function NotebookPhone({ mistakes, sessions = [], initialSourceNames, ini
                 </li>
               ))}
             </ul>
+            </>
           ) : rows.length ? (
             <ul className="pn-rows">
               {rows.slice(0, shown).map(m => {
@@ -412,6 +443,9 @@ export function NotebookPhone({ mistakes, sessions = [], initialSourceNames, ini
           )}
           {activeTab !== 'words' && rows.length > shown && <button type="button" className="pn-more" onClick={() => setShown(value => value + STEP)}>Xem thêm {Math.min(STEP, rows.length - shown)} câu</button>}
         </>
+      )}
+      {flashcardOpen && savedWordsList.length > 0 && (
+        <SavedWordsFlashcard words={savedWordsList} onClose={() => setFlashcardOpen(false)} onComplete={count => onStudyWords?.(count)} />
       )}
       {overlays}
     </div>

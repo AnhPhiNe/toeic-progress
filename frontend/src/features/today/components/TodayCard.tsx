@@ -1,17 +1,14 @@
 import { useEffect, useState, type CSSProperties } from 'react';
-import type { Habit, SuggestedTask } from '@/shared/types';
+import type { SuggestedTask } from '@/shared/types';
 import { suggestionFrom, suggestionLabel, type SuggestionView } from '../lib/suggestedTasks';
 import type { StreakWeek, WeeklyGoal } from '@/shared/domain/streakWeek';
 import { Soc } from '@/shared/ui/soc/Soc';
 import { StreakCake } from './StreakCake';
-import { AddHabitPanel } from './AddHabitPanel';
 import { todayKicker, type TodayTask } from '../lib/todayTasks';
-import { habitDoneToday } from '../lib/habits';
 import type { RestMood } from '../lib/socMood';
 
 interface Props {
   tasks: TodayTask[];
-  habits: Habit[];
   today: string;
   week: StreakWeek;
   goal: WeeklyGoal;
@@ -19,12 +16,6 @@ interface Props {
   /** Hide a suggested task until tomorrow. */
   onSkipTask: (id: string) => void;
   onPracticeMore: () => void;
-  onToggleHabit: (id: string) => void;
-  onAddHabit: (title: string) => void;
-  onRemoveHabit: (id: string) => void;
-  suggestOff: string[];
-  onToggleSuggest: (kind: string) => void;
-  onSetWeeklyGoal: (days: number) => void;
   /** Accessories Sóc wears (Thành tích → Tủ đồ). */
   gear?: readonly string[];
   /** Buồn nhẹ (streak broke) or Ngủ gật (long break); 'hi' while a tapped Sóc is awake. */
@@ -64,7 +55,7 @@ function Check() {
   return <svg width="13" height="11" viewBox="0 0 14 12" aria-hidden="true"><path d="M2 6 L5.5 9.5 L12 2" fill="none" stroke="#fff" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round" /></svg>;
 }
 
-export function TodayCard({ tasks, habits, today, week, goal, onStartTask, onSkipTask, onPracticeMore, onToggleHabit, onAddHabit, onRemoveHabit, onSetWeeklyGoal, suggestOff, onToggleSuggest, gear, rest = null, onWake, suggestions = [], onStartSuggestion, onToggleSuggestion }: Props) {
+export function TodayCard({ tasks, today, week, goal, onStartTask, onSkipTask, onPracticeMore, gear, rest = null, onWake, suggestions = [], onStartSuggestion, onToggleSuggestion }: Props) {
   const open = tasks.filter(t => !t.done);
   const [skip, setSkip] = useState(0);
   const hero = open.length ? open[skip % open.length] : null;
@@ -72,14 +63,10 @@ export function TodayCard({ tasks, habits, today, week, goal, onStartTask, onSki
   // With no suggested task left, Sóc's advice task (if any) leads the card.
   const sugHero = hero ? null : suggestions.find(v => !v.done) ?? null;
   const sugRows = suggestions.filter(v => v !== sugHero);
-  const habitsDone = habits.filter(h => habitDoneToday(h, today)).length;
-  const total = tasks.length + habits.length + suggestions.length;
-  const doneCount = tasks.length - open.length + habitsDone + suggestions.filter(v => v.done).length;
+  const total = tasks.length + suggestions.length;
+  const doneCount = tasks.length - open.length + suggestions.filter(v => v.done).length;
   const allDone = !hero && !sugHero && total > 0 && doneCount === total;
   const firstCheer = useFirstDoneCheer(doneCount, today);
-
-  const [addAt, setAddAt] = useState<HTMLElement | null>(null);
-  const [editGoal, setEditGoal] = useState(false);
 
 
 
@@ -143,21 +130,7 @@ export function TodayCard({ tasks, habits, today, week, goal, onStartTask, onSki
               {!done && <button type="button" className="td-sgo" onClick={() => onStartSuggestion?.(task)}>Làm</button>}
             </li>
           ))}
-          {habits.map(habit => {
-            const on = habitDoneToday(habit, today);
-            return (
-              <li key={habit.id} className="td-my">
-                <button type="button" className={'td-r' + (on ? ' is-done' : '')} onClick={() => onToggleHabit(habit.id)} aria-pressed={on}>
-                  <i className="td-c is-sq">{on && <><Check /><Burst /></>}</i>
-                  <span className="td-tx"><b title={habit.title}>{habit.title}</b><small>việc của mình · mỗi ngày</small></span>
-                </button>
-                <button type="button" className="td-x" onClick={() => onRemoveHabit(habit.id)} aria-label={`Bỏ việc "${habit.title}"`} title="Bỏ việc này">×</button>
-              </li>
-            );
-          })}
         </ul>
-        <button type="button" className="td-add" aria-expanded={!!addAt} onClick={e => setAddAt(addAt ? null : e.currentTarget)}>+ Thêm việc của mình</button>
-        {addAt && <AddHabitPanel anchor={addAt} habits={habits} suggestOff={suggestOff} onAdd={onAddHabit} onToggleSuggest={onToggleSuggest} onClose={() => setAddAt(null)} />}
       </div>
     </section>
 
@@ -165,14 +138,6 @@ export function TodayCard({ tasks, habits, today, week, goal, onStartTask, onSki
         <div className="td-wk">
           <span>{goal.done >= goal.goal ? <>Đủ mục tiêu tuần 🎉</> : <>Mục tiêu tuần: <b>{goal.done}/{goal.goal}</b> buổi học</>}</span>
           <div className="td-bar is-green"><i style={{ width: `${Math.min(100, goal.done / goal.goal * 100)}%` }} /></div>
-          {editGoal
-            ? <span className="td-step">
-                <button type="button" onClick={() => onSetWeeklyGoal(goal.goal - 1)} disabled={goal.goal <= 1} aria-label="Bớt một buổi">−</button>
-                <b>{goal.goal}</b>
-                <button type="button" onClick={() => onSetWeeklyGoal(goal.goal + 1)} disabled={goal.goal >= 7} aria-label="Thêm một buổi">+</button>
-                <button type="button" className="td-link" onClick={() => setEditGoal(false)}>Xong</button>
-              </span>
-            : <button type="button" className="td-link" onClick={() => setEditGoal(true)}>Sửa</button>}
         </div>
     </StreakCake>
     </>

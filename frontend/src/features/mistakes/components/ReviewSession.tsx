@@ -1,5 +1,8 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
+import { Volume2, VolumeX } from 'lucide-react';
 import type { MistakeEntry } from '@/shared/types';
+import { isSoundMuted, playChime, setSoundMuted } from '@/shared/lib/sound';
+import { triggerHaptic } from '@/shared/lib/haptics';
 import { useModalA11y } from '@/shared/hooks/useModalA11y';
 import { resolveQuizOptions } from '@/features/mistakes/lib/quizOptions';
 import { readQuestion } from '@/features/mistakes/lib/questionText';
@@ -40,7 +43,24 @@ export function ReviewSession({ cards, onClose, onGrade }: Props) {
   const [tally, setTally] = useState({ got: 0, again: 0 });
   const [lastGrade, setLastGrade] = useState<LastGrade | null>(null);
   const [error, setError] = useState('');
+  const [combo, setCombo] = useState(0);
+  const [muted, setMuted] = useState(isSoundMuted);
+  const doneSoundRef = useRef(false);
   const done = index >= cards.length;
+  useEffect(() => {
+    if (done && cards.length > 0 && !doneSoundRef.current) {
+      doneSoundRef.current = true;
+      playChime('complete');
+      triggerHaptic(12);
+    } else if (!done) {
+      doneSoundRef.current = false;
+    }
+  }, [done, cards.length]);
+  const toggleMute = () => {
+    const next = !muted;
+    setSoundMuted(next);
+    setMuted(next);
+  };
   const card = cards[Math.min(index, cards.length - 1)];
   const quiz = card ? resolveQuizOptions(card) : null;
   const quizMode = Boolean(quiz && quiz.correctIndex >= 0 && quiz.options.length >= 2);
@@ -58,11 +78,24 @@ export function ReviewSession({ cards, onClose, onGrade }: Props) {
   const marked = useMemo(() => (reading && revealed ? markPassage(context, evidences) : { blocks: [], count: 0 }), [reading, revealed, context, evidences]);
   const jump = useEvidenceJump(reading && revealed ? marked.count : 0, `${card?.id ?? ''}:${revealed ? '1' : '0'}`);
 
-  const pick = (letter: string) => { if (!revealed) { setPicked(letter); setRevealed(true); } };
+  const pick = (letter: string) => {
+    if (revealed) return;
+    setPicked(letter);
+    setRevealed(true);
+    if (letter === answer) {
+      playChime('correct');
+      triggerHaptic(8);
+      setCombo(c => c + 1);
+    } else {
+      playChime('wrong');
+      setCombo(0);
+    }
+  };
   const grade = (understood: boolean) => {
     if (!card) return;
     try {
       const rating = reviewRating(understood, picked, answer);
+      if (rating === 'AGAIN') setCombo(0);
       const graded = onGrade(card, rating);
       setTally(t => rating === 'AGAIN' ? { ...t, again: t.again + 1 } : { ...t, got: t.got + 1 });
       setLastGrade(graded.undo ? { index, rating, picked, undo: graded.undo } : null);
@@ -202,7 +235,7 @@ export function ReviewSession({ cards, onClose, onGrade }: Props) {
               </p>
             </div>
           )}
-          {quickTip && <TipBlock tip={quickTip} size={48} />}
+          {quickTip && <TipBlock tip={quickTip} size={48} icon="bulb" />}
           {signal && <SignalBlock text={signal} />}
           {reason && <p className="rv-mine"><b>Bạn ghi:</b> {reason}</p>}
           {more && hasExtraDetails && (
@@ -226,8 +259,12 @@ export function ReviewSession({ cards, onClose, onGrade }: Props) {
           <div className="rv-bar-l">
             <Soc state={socMood} size={42} />
             <b>Ôn câu sai<span>{index + 1} / {cards.length}</span></b>
+            {combo >= 2 && <span className="rv-combo" aria-live="polite">🔥 Combo ×{combo}</span>}
           </div>
           <div className="rv-bar-acts">
+            <button type="button" className="rv-mute" onClick={toggleMute} aria-label={muted ? 'Bật âm thanh' : 'Tắt âm thanh'} title={muted ? 'Bật âm thanh' : 'Tắt âm thanh'}>
+              {muted ? <VolumeX size={17} aria-hidden="true" /> : <Volume2 size={17} aria-hidden="true" />}
+            </button>
             {lastGrade && <button type="button" className="rv-undo" onClick={undoLast}>↶ Hoàn tác câu trước</button>}
             <button type="button" className="rv-x" onClick={onClose}>× Thoát</button>
           </div>

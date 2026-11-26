@@ -39,7 +39,10 @@ export function deriveStreak(bundle: DataBundle, today: string) {
   const lastCoveredDay = covered.length ? dayNumber(covered[covered.length - 1]) : Number.NEGATIVE_INFINITY;
   const currentStreak = lastCoveredDay >= dayNumber(today) - 1 ? run : 0;
   const lastStudyDate = [...actual].sort().pop() || '';
+  const longestStreak = Math.max(longest, bundle.profile.longestStreak || 0);
   const shieldAllowance = bundle.profile.shieldAllowance ?? bundle.profile.streakFreezes + shieldDates.size;
-  const streakFreezes = Math.max(0, shieldAllowance - shieldDates.size);
-  return { currentStreak, longestStreak: Math.max(longest, bundle.profile.longestStreak || 0), lastStudyDate, streakFreezes };
+  const bonusShields = Math.floor(longestStreak / 7);
+  const available = Math.max(0, shieldAllowance - shieldDates.size);
+  const streakFreezes = bonusShields > 0 ? Math.min(3, available + bonusShields) : available;
+  return { currentStreak, longestStreak, lastStudyDate, streakFreezes };
 }

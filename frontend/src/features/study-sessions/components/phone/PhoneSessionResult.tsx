@@ -1,6 +1,10 @@
-import { useMemo } from 'react';
+import { useEffect, useMemo } from 'react';
 import type { MistakeEntry, StudySession } from '@/shared/types';
 import { useModalA11y } from '@/shared/hooks/useModalA11y';
+import { useCountUp } from '@/shared/hooks/useCountUp';
+import { playChime } from '@/shared/lib/sound';
+import { triggerHaptic } from '@/shared/lib/haptics';
+import { ShareCardButton } from '@/shared/components/ShareCardButton';
 import { Soc } from '@/shared/ui/soc/Soc';
 import { summarizeSessionResult } from '../../lib/sessionResult';
 import { resultFacts } from './phoneLogLib';
@@ -29,6 +33,12 @@ export function PhoneSessionResult({ session, sessions, mistakes, targetScore, o
   const dialogRef = useModalA11y(true, onClose);
   const firstTest = useMemo(() => isFirstFullTest(sessions), [sessions]);
   const delta = facts.delta;
+  const shownScore = useCountUp(typeof facts.score === 'number' ? facts.score : result.score, 600);
+  useEffect(() => {
+    playChime(facts.record ? 'levelup' : 'complete');
+    triggerHaptic(12);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
   const line = facts.record ? `Kỷ lục mới · ▲ ${delta}`
     : facts.first ? 'Bài đầu tiên, mốc để so sánh'
     : delta === null ? ''
@@ -50,7 +60,7 @@ export function PhoneSessionResult({ session, sessions, mistakes, targetScore, o
       ) : <>
       <div className="plr-top">
         <p className="plr-test">{session.testName}</p>
-        <h2 id="session-result-title" className="plr-score">{facts.score}<span className="sr-only"> điểm</span></h2>
+        <h2 id="session-result-title" className="plr-score">{typeof facts.score === 'number' ? shownScore : facts.score}<span className="sr-only"> điểm</span></h2>
         {line && <p className="plr-line">{line}</p>}
       </div>
       <Soc state={facts.record ? 'proud' : 'idle'} size={150} className="plr-soc" />
@@ -66,6 +76,7 @@ export function PhoneSessionResult({ session, sessions, mistakes, targetScore, o
       </div>
       </>}
       {onAskAdvice && <AskAdviceRow onClick={onAskAdvice} className="plr-ask" />}
+      <ShareCardButton data={{ total: result.score, listening: result.listening, reading: result.reading, testName: session.testName, subtitle: facts.record ? 'Kỷ lục mới' : undefined }} className="plr-share" />
       {onSignIn && <p className="plr-sign">Kết quả đang chỉ lưu trên máy này. <button type="button" onClick={onSignIn}>Đăng nhập để không mất khi đổi máy</button></p>}
       <div className="plr-acts">
         <button type="button" className={'plr-done' + (next ? '' : ' is-solo')} onClick={onClose}>Xong</button>

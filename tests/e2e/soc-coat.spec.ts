@@ -40,7 +40,7 @@ test('phone: pick a coat and name after the goal, change both in Hồ sơ của 
   await page.getByLabel('Tên của Sóc').fill('Mây Bay');
   await page.getByLabel('Tên của Sóc').press('Enter');
   await page.getByRole('radio', { name: 'Hồng dâu' }).click();
-  await page.getByRole('button', { name: 'Lưu bộ đồ' }).click();
+  await page.getByRole('tab', { name: /Huy hiệu/ }).click();
   await expect(page.locator('.pf-pid .soc')).toHaveAttribute('data-coat', 'dau');
   expect(await stored(page)).toMatchObject({ socCoat: 'dau', socName: 'Mây Bay' });
 });
@@ -68,11 +68,10 @@ test('desktop: the welcome coat card, then Tủ đồ in Hồ sơ của Sóc; th
   await expect(page).toHaveURL(/\/ho-so-soc$/);
   await expect(page.locator('.pf-name b')).toHaveText('Hạt Tiêu');
   await page.getByRole('radio', { name: 'Kem sữa' }).click();
-  await expect(me).toHaveAttribute('data-coat', 'xam'); // a preview until saved
+  await expect(me).toHaveAttribute('data-coat', 'kem'); // auto-saved immediately
   await page.getByRole('button', { name: 'Đổi tên Sóc' }).click();
   await page.getByLabel('Tên của Sóc').fill('Trà Sữa');
   await page.getByLabel('Tên của Sóc').press('Enter');
-  await page.getByRole('button', { name: 'Lưu bộ đồ' }).click();
   await expect(me).toHaveAttribute('data-coat', 'kem');
   expect(await stored(page)).toMatchObject({ socCoat: 'kem', socName: 'Trà Sữa' });
 });

@@ -10,7 +10,14 @@ function sentenceAround(text: string, start: number, end: number): FocusRange {
   let s = start;
   while (s > 0 && !SENTENCE_END.test(text[s - 1])) s -= 1;
   let e = end;
-  while (e < text.length && !SENTENCE_END.test(text[e])) e += 1;
+  while (e < text.length) {
+    if (SENTENCE_END.test(text[e])) {
+      // A blank token typed as "____ 143.," is not the end of the sentence; continue to the true sentence stop.
+      const isBlankTrailingDot = text[e] === '.' && e > 0 && /\d/.test(text[e - 1]) && /^\s*[,;:a-z]/.test(text.slice(e + 1));
+      if (!isBlankTrailingDot) break;
+    }
+    e += 1;
+  }
   if (e < text.length && text[e] !== '\n') e += 1;
   while (s < e && /\s/.test(text[s])) s += 1;
   return { start: s, end: e };

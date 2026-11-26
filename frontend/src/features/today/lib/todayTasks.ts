@@ -4,7 +4,7 @@ import { getDueMistakes, REVIEW_SESSION_CAP } from '@/features/mistakes/lib/spac
 import { rollingPartStats } from '@/shared/domain/learningAnalytics';
 import { PART_MAX_QUESTIONS } from '@/shared/domain/etsScoring';
 
-export type TodayTaskKind = 'REVIEW_MISTAKES' | 'PART_TIMER' | 'WORD_CARDS' | 'FULL_TEST';
+export type TodayTaskKind = 'REVIEW_MISTAKES' | 'PART_TIMER' | 'FULL_TEST';
 
 /**
  * One item of the Hôm nay card. Tasks only point the learner to a tool that already
@@ -35,7 +35,6 @@ export const MAX_TODAY_TASKS = 4;
 /** One card takes about a minute; a review round is kept between 5 and 15 minutes. */
 export const MISTAKE_BATCH_CAP = REVIEW_SESSION_CAP;
 const MISTAKE_MIN_MINUTES = 5;
-const WORD_CARD_MINUTES = 10;
 const FULL_TEST_MINUTES = 120;
 const FULL_TEST_GAP_DAYS = 7;
 const TIMER_MINUTES: Record<5 | 6 | 7, number> = { 5: 15, 6: 15, 7: 20 };
@@ -119,14 +118,6 @@ function timerTask(bundle: DataBundle, today: string): TodayTask | null {
   });
 }
 
-function wordCardTask(today: string, dueWordCards: number): TodayTask | null {
-  const count = Math.floor(dueWordCards);
-  if (!(count > 0)) return null;
-  return task('WORD_CARDS', today, {
-    title: `Ôn ${count} thẻ từ`, reason: 'Đến hạn hôm nay', minutes: WORD_CARD_MINUTES, count, done: false,
-  });
-}
-
 function fullTestTask(bundle: DataBundle, today: string): TodayTask | null {
   const dates = bundle.sessions.filter(item => !item.deletedAt && item.sessionType === 'FULL_TEST' && item.date <= today).map(item => item.date);
   const doneToday = dates.includes(today);
@@ -165,7 +156,6 @@ export function pickTodayTasks(bundle: DataBundle, today: string, opts: TodayTas
   return [
     reviewTask(bundle, today),
     timerTask(bundle, today),
-    wordCardTask(today, dueWordCards),
     fullTestTask(bundle, today),
   ].filter((item): item is TodayTask => item !== null && !(opts.off ?? []).includes(item.kind)).slice(0, MAX_TODAY_TASKS);
 }

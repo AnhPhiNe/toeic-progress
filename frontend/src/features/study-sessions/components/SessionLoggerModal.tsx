@@ -18,12 +18,10 @@ import {
   PART_MAX_QUESTIONS,
   getPracticeParts
 } from '@/shared/domain/etsScoring';
-import { computeSessionAttemptMap, getTodayDateString, loadMistakes, loadStudySessions, loadVocabLog } from '@/shared/data/storage';
-import { VOCAB_DEFAULT, dayMonth, vocabDayTotal, type VocabEditApi } from './phone/phoneLogLib';
+import { computeSessionAttemptMap, getTodayDateString, loadMistakes, loadStudySessions } from '@/shared/data/storage';
 import { collectTestNames, normalizeTestName, suggestNextTestName, testNameKey } from '@/shared/domain/testNames';
 import { normalizeQuestionList, partScoresFromWrong } from '@/shared/domain/questionNumbers';
 import { DesktopPracticeBody } from './DesktopPracticeBody';
-import { DesktopVocabBody } from './DesktopVocabBody';
 import { TestNamePicker } from '@/shared/components/TestNamePicker';
 import { DateField } from '@/shared/components/DateField';
 import { askConfirm } from '@/shared/components/ConfirmDialog';
@@ -52,12 +50,10 @@ interface SessionLoggerModalProps {
   isOpen: boolean;
   onClose: () => void;
   onSaveSession: (session: StudySession, newMistakes?: MistakeEntry[]) => void;
-  onSaveVocab: (date: string, count: number) => void;
-  onDeleteVocab?: (date: string) => void;
   sessions?: StudySession[];
   /** Giá trị điền sẵn khi form được mở từ Bộ đếm nhịp hoặc trang Phân tích (SPEC 4.3) */
   /** `markWrong` reopens a saved Full Test straight on its wrong-question grid. */
-  prefill?: { durationMinutes?: number; sessionType?: 'FULL_TEST' | 'PART_PRACTICE' | 'VOCAB'; partNumber?: number; markWrong?: boolean; initialFiles?: File[] };
+  prefill?: { durationMinutes?: number; sessionType?: 'FULL_TEST' | 'PART_PRACTICE'; partNumber?: number; markWrong?: boolean; initialFiles?: File[] };
   /**
    * Có giá trị = chế độ SỬA: form nạp sẵn buổi học này, lưu thì thay thế
    * bản ghi cũ (giữ nguyên id và createdAt) qua onUpdateSession.
@@ -78,8 +74,6 @@ export const SessionLoggerModal: React.FC<SessionLoggerModalProps> = ({
   isOpen,
   onClose,
   onSaveSession,
-  onSaveVocab,
-  onDeleteVocab,
   sessions,
   prefill,
   editingSession,
@@ -91,7 +85,7 @@ export const SessionLoggerModal: React.FC<SessionLoggerModalProps> = ({
   const isEditing = !!editingSession;
   // Phones get a shorter form built from the same state; tablet and desktop keep the full layout.
   const isPhone = useMediaQuery(PHONE_QUERY);
-  const [sessionType, setSessionType] = useState<'FULL_TEST' | 'PART_PRACTICE' | 'VOCAB'>('FULL_TEST');
+  const [sessionType, setSessionType] = useState<'FULL_TEST' | 'PART_PRACTICE'>('FULL_TEST');
   const [testName, setTestName] = useState('');
   const [date, setDate] = useState(getTodayDateString());
   const [durationMinutes, setDurationMinutes] = useState(120);
@@ -102,10 +96,6 @@ export const SessionLoggerModal: React.FC<SessionLoggerModalProps> = ({
   const [durationEmpty, setDurationEmpty] = useState(false);
   const durationEmptyRef = useRef(false);
   const markDurationEmpty = (value: boolean) => { durationEmptyRef.current = value; setDurationEmpty(value); };
-  const [vocabCount, setVocabCount] = useState(VOCAB_DEFAULT);
-  // A past day (or a logged today) picked from the "7 ngày qua" strip; false = the plain "log today" form.
-  const [vocabPicked, setVocabPicked] = useState(false);
-  const [, setVocabTick] = useState(0);
   // Phone logger: 'pick' chooses the test and how to log, 'manual' types the score, 'wrong' is the wrong-question screen.
   const [phoneStep, setPhoneStep] = useState<PhoneStep>('pick');
   const [pendingInitialFiles, setPendingInitialFiles] = useState<File[] | undefined>(undefined);
@@ -120,8 +110,6 @@ export const SessionLoggerModal: React.FC<SessionLoggerModalProps> = ({
   const [manualViewOverride, setManualViewOverride] = useState(false);
   // Computer Full Test opens on the paste-an-image view; editing an existing test or restoring typed marks opens the manual tools.
   const [fullTestManual, setFullTestManual] = useState(() => Boolean(editingSession));
-  // Between the paste view and the 200-question grid: official L/R plus a typed wrong list.
-  const [manualMinimal, setManualMinimal] = useState(false);
   // Computer Full Test: date and duration stay folded away until asked for, so the form opens on the name and the paste area.
   const [detailsOpen, setDetailsOpen] = useState(false);
   // Computer AI-first view keeps name/date/time inside the review card; this opens their fields.
@@ -300,7 +288,7 @@ export const SessionLoggerModal: React.FC<SessionLoggerModalProps> = ({
     setManualViewOverride(Boolean(e && !markWrong && !e.wrongQuestions && (e.scoreSource !== 'ESTIMATED' || e.partScores)));
     setWrongQuestions(e?.wrongQuestions ? [...e.wrongQuestions] : []);
     setFullTestManual(Boolean(e));
-    setManualMinimal(false);
+    setMetaOpen(false);
     setDetailsOpen(false);
     setWrongNumberDraft(EMPTY_WRONG_NUMBER_DRAFT);
     setPartDurations(e?.partDurations);
@@ -310,8 +298,6 @@ export const SessionLoggerModal: React.FC<SessionLoggerModalProps> = ({
     setDurationMinutes(e?.durationMinutes ?? prefill?.durationMinutes ?? (prefill?.sessionType === 'PART_PRACTICE' ? 30 : 120));
     markDurationEdited(Boolean(e || prefill?.durationMinutes !== undefined));
     markDurationEmpty(Boolean(e) && !(Number(e?.durationMinutes) > 0));
-    setVocabCount(VOCAB_DEFAULT);
-    setVocabPicked(false);
     setPhoneStep(markWrong || prefill?.initialFiles?.length ? 'wrong' : 'pick');
     setNotes(e?.notes ?? '');
     setPartScores(e?.partScores ? { ...e.partScores } : { ...EMPTY_PART_SCORES });
@@ -349,38 +335,20 @@ export const SessionLoggerModal: React.FC<SessionLoggerModalProps> = ({
     if (sessionType === 'FULL_TEST') { if (!durationEditedRef.current) setDurationMinutes(current => current === 30 ? 120 : current); setManualViewOverride(false); }
   }, [sessionType]);
 
-  const vocabToday = getTodayDateString();
-  const vocabDefault = VOCAB_DEFAULT;
-  const vocabExisting = sessionType === 'VOCAB' ? vocabDayTotal(loadVocabLog(), date) : 0;
-  const vocabApi: VocabEditApi = {
-    edit: vocabPicked || date !== vocabToday,
-    existing: vocabExisting,
-    onPick: day => {
-      const total = vocabDayTotal(loadVocabLog(), day);
-      setDate(day); setVocabCount(total > 0 ? total : vocabDefault); setVocabPicked(day !== vocabToday || total > 0); setScoreError('');
-    },
-    onBack: () => { setDate(vocabToday); setVocabCount(vocabDefault); setVocabPicked(false); setScoreError(''); },
-    onDelete: () => {
-      try { runAsOwner(draftOwner.current, () => onDeleteVocab?.(date)); } catch (error) { setScoreError(error instanceof Error ? error.message : 'Chưa xóa được ngày này.'); return; }
-      setDate(vocabToday); setVocabCount(vocabDefault); setVocabPicked(false); setVocabTick(n => n + 1);
-    }
-  };
-  const vocabDm = dayMonth(date);
-
-  const formDraft: SessionFormDraft = { sessionType, testName, date, durationMinutes, durationEdited, vocabCount, notes,
+  const formDraft: SessionFormDraft = { sessionType, testName, date, durationMinutes, durationEdited, vocabCount: 20, notes,
     scoreSource, manualMode, manualListening, manualReading, manualTotal, includePartDetails, entry, wrongQuestions,
     partScores, practiceRows, sourceScorePending, sourceScoreDraft: sourceScoreStore.current, originalUpdatedAt: editingSession?.updatedAt, wrongNumberDraft, partDurations, resultTiming, timingCandidate };
   const restoreFormDraft = (value: SessionFormDraft) => {
-      restoredType.current = value.sessionType;
-      setSessionType(value.sessionType); setTestName(value.testName); setDate(value.date); setDurationMinutes(value.durationMinutes);
+      const nextType = value.sessionType === 'VOCAB' ? 'FULL_TEST' : value.sessionType;
+      restoredType.current = nextType;
+      setSessionType(nextType); setTestName(value.testName); setDate(value.date); setDurationMinutes(value.durationMinutes);
       markDurationEdited(value.durationEdited || value.resultTiming?.totalSeconds != null);
-      setVocabCount(value.vocabCount); setNotes(value.notes);
+      setNotes(value.notes);
       setPhoneStep(value.scoreSource !== 'ESTIMATED' || value.sourceScorePending ? 'manual' : value.wrongQuestions.length > 0 ? 'wrong' : 'pick'); setScoreSource(value.scoreSource); setManualMode(value.manualMode);
       setManualListening(value.manualListening); setManualReading(value.manualReading); setManualTotal(value.manualTotal);
       setIncludePartDetails(value.includePartDetails); setEntry(value.entry); setWrongQuestions(value.wrongQuestions); setPartScores(value.partScores);
       setWrongNumberDraft(value.wrongNumberDraft); setPartDurations(value.partDurations);
-      setFullTestManual(false);
-      setManualMinimal(value.wrongQuestions.length > 0 || value.wrongNumberDraft.typing);
+      setFullTestManual(value.wrongQuestions.length > 0 || value.wrongNumberDraft.typing);
       setResultTiming(value.resultTiming); setTimingCandidate(value.timingCandidate);
       setPracticeRows(value.practiceRows as PracticePartResult[]); sourceScoreStore.current = value.sourceScoreDraft; setSourceScorePending(value.sourceScorePending);
       setRestoredVersion(version => version + 1);
@@ -391,7 +359,7 @@ export const SessionLoggerModal: React.FC<SessionLoggerModalProps> = ({
     snapshot: () => ({ ...formDraft, sourceScoreDraft: sourceScoreStore.current }),
     meaningful: Boolean(testName.trim() && testName !== suggestedName.current || notes.trim() || wrongQuestions.length || manualListening || manualReading || manualTotal
       || Object.values(partScores).some(Boolean) || practiceRows.some(row => row.correct > 0 || row.total !== PART_MAX_QUESTIONS[`part${row.part}`])
-      || practiceRows.length > 1 || sourceScorePending || wrongNumberDraft.typing || Boolean(partDurations) || Boolean(timingCandidate || resultTiming) || vocabCount !== VOCAB_DEFAULT || date !== getTodayDateString()
+      || practiceRows.length > 1 || sourceScorePending || wrongNumberDraft.typing || Boolean(partDurations) || Boolean(timingCandidate || resultTiming) || date !== getTodayDateString()
       || durationMinutes !== (prefill?.durationMinutes ?? (sessionType === 'PART_PRACTICE' ? 30 : 120)) || sessionType !== (prefill?.sessionType ?? 'FULL_TEST')),
     validate: input => {
       const value = parseSessionFormDraft(input);
@@ -440,7 +408,7 @@ export const SessionLoggerModal: React.FC<SessionLoggerModalProps> = ({
 
   const wrongEntry = sessionType === 'FULL_TEST' && !manualViewOverride && entry === 'wrong';
   // Computer Full Test: hide date/duration until asked; show the duration empty ("Chưa ghi") until the learner types or an image sets it.
-  const aiDesktop = sessionType === 'FULL_TEST' && !isPhone && wrongEntry && !fullTestManual && !manualMinimal;
+  const aiDesktop = sessionType === 'FULL_TEST' && !isPhone && wrongEntry && !fullTestManual;
   // Ghi điểm (capture-v3): "Lưu điểm" appears once Sóc has read a photo (or the learner chose a manual way).
   const awaitingRead = aiDesktop && !isEditing && scoreSource === 'ESTIMATED' && wrongQuestions.length === 0 && !sourceScorePending;
   const compactTop = sessionType === 'FULL_TEST' && !isPhone && !fullTestManual && !detailsOpen;
@@ -539,14 +507,6 @@ export const SessionLoggerModal: React.FC<SessionLoggerModalProps> = ({
       // Opened for one owner: refuse (and tell the app) if another tab signed out or switched account since.
       assertWriteOwner(draftOwner.current);
       setScoreError('');
-
-      if (sessionType === 'VOCAB') {
-        runAsOwner(draftOwner.current, () => onSaveVocab(date, vocabCount));
-        savedSession.current = true;
-        persistentDraft.clear();
-        onClose();
-        return;
-      }
 
       if (sessionType === 'FULL_TEST' && !testName.trim()) {
         setMetaOpen(true);
@@ -734,8 +694,7 @@ export const SessionLoggerModal: React.FC<SessionLoggerModalProps> = ({
               scoreStore={sourceScoreStore} onRevertScore={revertSourceScore}
               initialFiles={pendingInitialFiles} setInitialFiles={setPendingInitialFiles}
               timingNotice={timingNotice} scoreError={scoreError} duplicateNotice={duplicateNotice}
-              practiceRows={practiceRows} setPracticeRows={setPracticeRows}
-              vocabCount={vocabCount} setVocabCount={setVocabCount} vocab={vocabApi} />
+              practiceRows={practiceRows} setPracticeRows={setPracticeRows} />
           </form>
         </div>
       </div>
@@ -756,7 +715,7 @@ export const SessionLoggerModal: React.FC<SessionLoggerModalProps> = ({
         <div className="rdl-head flex items-center justify-between bg-white">
           <div className="flex items-center space-x-3">
             <div>
-              <h2 id="session-logger-title" className="rdl-title">{sessionType === 'VOCAB' ? (vocabApi.edit ? `Sửa ngày ${vocabDm}` : 'Ghi từ vựng') : isEditing ? 'Sửa kết quả' : 'Ghi điểm'}</h2>
+              <h2 id="session-logger-title" className="rdl-title">{isEditing ? 'Sửa kết quả' : 'Ghi điểm'}</h2>
             </div>
           </div>
           <button
@@ -809,9 +768,8 @@ export const SessionLoggerModal: React.FC<SessionLoggerModalProps> = ({
           
           {/* Mode switcher: one soft segmented bar on every screen */}
           <div className="rdl-seg">
-            {(isPhone ? [['FULL_TEST', 'Full Test'], ['PART_PRACTICE', 'Luyện Part'], ['VOCAB', 'Từ vựng']] as const
-              : [['FULL_TEST', 'Đề Full Test'], ['PART_PRACTICE', 'Bài luyện Part'], ['VOCAB', 'Từ vựng']] as const)
-              .filter(([type]) => !(isEditing && type === 'VOCAB'))
+            {(isPhone ? [['FULL_TEST', 'Full Test'], ['PART_PRACTICE', 'Luyện Part']] as const
+              : [['FULL_TEST', 'Đề Full Test'], ['PART_PRACTICE', 'Bài luyện Part']] as const)
               .map(([type, label]) => {
                 const on = sessionType === type;
                 return (
@@ -873,8 +831,20 @@ export const SessionLoggerModal: React.FC<SessionLoggerModalProps> = ({
             <button type="button" onClick={discardImageTiming} className="ml-2 min-h-9 font-bold text-slate-600 underline dark:text-slate-300">Bỏ qua thời gian</button>
           </div>}
           {sessionType === 'FULL_TEST' && !isPhone && (<>
+          {fullTestManual && !metaOpen && (
+            <div className="rdl-meta-bar">
+              <span>
+                <b>{testName.trim() || 'Chưa đặt tên đề'}</b>
+                {' · '}
+                {date === getTodayDateString() ? 'Hôm nay' : date.split('-').reverse().slice(0, 2).join('/')}
+                {' · '}
+                {durationBlank ? 'Chưa ghi giờ' : `${durationMinutes}′`}
+              </span>
+              <button type="button" onClick={() => setMetaOpen(true)}>✎ Sửa đề &amp; giờ</button>
+            </div>
+          )}
           {/* General Info Row */}
-          {(!aiDesktop || metaOpen) && <div className="rde grid grid-cols-1 sm:grid-cols-12 gap-3.5">
+          {metaOpen && <div className="rde grid grid-cols-1 sm:grid-cols-12 gap-3.5">
             <div className={compactTop ? 'sm:col-span-12' : 'sm:col-span-6'}>
               <label htmlFor="session-test-name" className="rde-lab block">
                 Tên đề
@@ -917,11 +887,11 @@ export const SessionLoggerModal: React.FC<SessionLoggerModalProps> = ({
                 className="rde-in" />
             </div>
           )}
-          {sessionType === 'FULL_TEST' && !isPhone && !fullTestManual && (!aiDesktop || metaOpen) && (
-            <button type="button" onClick={() => { if (aiDesktop && detailsOpen) setMetaOpen(false); setDetailsOpen(open => !open); }} aria-expanded={detailsOpen}
+          {sessionType === 'FULL_TEST' && !isPhone && metaOpen && (
+            <button type="button" onClick={() => { if (fullTestManual) { setMetaOpen(false); return; } if (aiDesktop && detailsOpen) setMetaOpen(false); setDetailsOpen(open => !open); }} aria-expanded={fullTestManual ? metaOpen : detailsOpen}
               title="Đổi ngày, thêm thời lượng và ghi chú"
               className="rde-quiet -mt-1">
-              {detailsOpen ? 'Ẩn chi tiết ▴' : `Ngày: ${date === getTodayDateString() ? 'Hôm nay' : date.split('-').reverse().join('/')} · giờ, ghi chú ▾`}
+              {fullTestManual ? 'Thu gọn ▴' : detailsOpen ? 'Ẩn chi tiết ▴' : `Ngày: ${date === getTodayDateString() ? 'Hôm nay' : date.split('-').reverse().join('/')} · giờ, ghi chú ▾`}
             </button>
           )}
 
@@ -931,7 +901,6 @@ export const SessionLoggerModal: React.FC<SessionLoggerModalProps> = ({
 
           {wrongEntry && (
             <DesktopFullTestBody key={restoredVersion} manualOpen={fullTestManual} onManualOpenChange={setFullTestManual}
-              minimalOpen={manualMinimal} onMinimalOpenChange={setManualMinimal} onSections={changeSectionScores}
               knownMinutes={durationBlank ? undefined : durationMinutes} onOpenDetails={() => { setMetaOpen(true); setDetailsOpen(true); }}
               meta={{ name: testName, dateLabel: date === getTodayDateString() ? 'Hôm nay' : date.split('-').reverse().slice(0, 2).join('/'), onEdit: () => { setMetaOpen(true); setDetailsOpen(true); } }}
               wrong={wrongQuestions} onWrong={setWrongQuestions} preview={scorePreview}
@@ -1043,10 +1012,6 @@ export const SessionLoggerModal: React.FC<SessionLoggerModalProps> = ({
               initialDetailOpen={Boolean(editingSession?.testName || editingSession?.notes || notes.trim())} />
           )}
 
-          {sessionType === 'VOCAB' && !isPhone && (
-            <DesktopVocabBody count={vocabCount} setCount={setVocabCount} date={date} setDate={setDate} today={vocabToday} vocab={vocabApi} />
-          )}
-
             </div>
             <ContainerScrollCue containerRef={formBodyRef} resetKey={`${sessionType}-${wrongEntry}`} />
           </div>
@@ -1063,7 +1028,7 @@ export const SessionLoggerModal: React.FC<SessionLoggerModalProps> = ({
             >
               Hủy
             </button>
-            {!awaitingRead && sessionType !== 'VOCAB' && !wrongEntry && !duplicate && onAddMistakeForSession && (sessionType === 'FULL_TEST' || practiceRows.some(r => r.part >= 5)) && (
+            {!awaitingRead && !wrongEntry && !duplicate && onAddMistakeForSession && (sessionType === 'FULL_TEST' || practiceRows.some(r => r.part >= 5)) && (
               <button
                 type="submit"
                 name="afterSave"
@@ -1079,7 +1044,7 @@ export const SessionLoggerModal: React.FC<SessionLoggerModalProps> = ({
               className="rdl-save max-md:flex-1 max-md:justify-center flex items-center space-x-1.5 cursor-pointer"
             >
               <CheckCircle2 className="w-4 h-4" />
-              <span>{duplicate ? 'Vẫn lưu' : sessionType === 'VOCAB' ? (vocabApi.edit ? `Lưu ngày ${vocabDm}` : 'Lưu từ vựng') : isEditing ? 'Lưu thay đổi' : wrongEntry ? 'Lưu điểm' : 'Lưu kết quả'}</span>
+              <span>{duplicate ? 'Vẫn lưu' : isEditing ? 'Lưu thay đổi' : wrongEntry ? 'Lưu điểm' : 'Lưu kết quả'}</span>
             </button>}
           </div>
           </div>

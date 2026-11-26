@@ -1,18 +1,31 @@
 import React, { useEffect } from 'react';
 import { Soc } from '@/shared/ui/soc/Soc';
+import { PHONE_QUERY, useMediaQuery } from '@/shared/hooks/useMediaQuery';
+import { PhoneShellContext, type PhoneShellValue } from '@/app/components/phone/PhoneShellContext';
+import { levelProgress } from '@/features/awards/lib/levels';
+import { ConvertPage } from '@/features/resources/components/ConvertPage';
+import { ConvertPhone } from '@/features/resources/components/ConvertPhone';
 import { Landing } from './Landing';
 import { MeadowStrip } from './PublicScenes';
 import './public.css';
 
-export type PublicPageKind = 'about' | 'privacy' | 'terms';
+export type PublicPageKind = 'about' | 'privacy' | 'terms' | 'convert';
 
 export function publicPageFromPath(path: string): PublicPageKind | null {
   const normalized = path.replace(/\/+$/, '') || '/';
   if (normalized === '/gioi-thieu') return 'about';
   if (normalized === '/chinh-sach-quyen-rieng-tu') return 'privacy';
   if (normalized === '/dieu-khoan') return 'terms';
+  if (normalized === '/quy-doi-diem') return 'convert';
   return null;
 }
+
+const PUBLIC_SHELL: PhoneShellValue = {
+  soc: { progress: levelProgress(0), worn: [] },
+  newBadges: 0,
+  goTab: () => { window.location.href = '/'; },
+  openSettings: () => { window.location.href = '/'; },
+};
 
 const operator = import.meta.env.VITE_OPERATOR_NAME || 'TOEIC Progress';
 const support = import.meta.env.VITE_SUPPORT_EMAIL || '';
@@ -32,6 +45,7 @@ export const PublicFooter: React.FC = () => (
     <div className="pub-foot__band">
       <nav aria-label="Trang công khai" className="pub-foot__links">
         <a href="/gioi-thieu">Giới thiệu</a><span aria-hidden="true">·</span>
+        <a href="/quy-doi-diem">Quy đổi điểm</a><span aria-hidden="true">·</span>
         <a href="/chinh-sach-quyen-rieng-tu">Chính sách quyền riêng tư</a><span aria-hidden="true">·</span>
         <a href="/dieu-khoan">Điều khoản</a>
       </nav>
@@ -41,9 +55,37 @@ export const PublicFooter: React.FC = () => (
 );
 
 export const PublicPage: React.FC<{ kind: PublicPageKind }> = ({ kind }) => {
-  const title = kind === 'about' ? 'Giới thiệu' : kind === 'privacy' ? 'Chính sách quyền riêng tư' : 'Điều khoản sử dụng';
+  const isPhone = useMediaQuery(PHONE_QUERY);
+  const title = kind === 'about' ? 'Giới thiệu' : kind === 'convert' ? 'Quy đổi điểm TOEIC ↔ CEFR, IELTS, VSTEP' : kind === 'privacy' ? 'Chính sách quyền riêng tư' : 'Điều khoản sử dụng';
   useEffect(() => { document.title = `${title} · TOEIC Progress`; }, [title]);
   if (kind === 'about') return <div className="rd pub"><Landing brand={<PublicBrand />} /><PublicFooter /></div>;
+  if (kind === 'convert') {
+    return (
+      <div className="rd pub pub-conv">
+        <header className="pub-head">
+          <PublicBrand />
+          <a href="/" className="rd-btn rd-btn--white pub-head__app">Vào ứng dụng</a>
+        </header>
+        <div className="pub-conv__wrap">
+          {isPhone ? (
+            <PhoneShellContext.Provider value={PUBLIC_SHELL}>
+              <ConvertPhone onBack={() => { window.location.href = '/gioi-thieu'; }} />
+            </PhoneShellContext.Provider>
+          ) : (
+            <ConvertPage />
+          )}
+          <div className="pub-conv__cta">
+            <div>
+              <strong>Muốn Sóc lưu lịch sử thi &amp; giải thích câu sai tự động?</strong>
+              <span>Mở app dùng thử ngay bằng chế độ khách, không cần đăng ký.</span>
+            </div>
+            <a href="/" className="rd-btn">Lưu kết quả &amp; theo dõi lộ trình miễn phí</a>
+          </div>
+        </div>
+        <PublicFooter />
+      </div>
+    );
+  }
   return <div className="rd pub">
     <header className="pub-head">
       <PublicBrand />

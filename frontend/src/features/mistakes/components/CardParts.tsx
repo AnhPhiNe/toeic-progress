@@ -1,8 +1,72 @@
 import { Fragment, useCallback, useId, useLayoutEffect, useMemo, useRef, useState } from 'react';
+import { Lightbulb } from 'lucide-react';
 import type { EvidenceNote, KeyWord } from '@/shared/types';
 import { Soc } from '@/shared/ui/soc/Soc';
 import { markPassage, quotedParts, type MarkedBlock, type OptionRow } from '@/features/mistakes/lib/cardDetail';
 import './card-detail.css';
+
+const normPart6 = (s: string) => s.toLowerCase().replace(/[_＿—–-]{2,}|\[?\b\d{1,3}\b\]?|[.,;:!?\s]+/g, ' ').trim();
+
+/** True when a Part 6 card's `question` merely repeats the gapped sentence already visible inside `context`. */
+export function isDuplicatePart6Question(part: number, question: string, context: string): boolean {
+  if (part !== 6 || !question || !context) return false;
+  const qn = normPart6(question);
+  if (qn.length < 12) return false;
+  const cn = normPart6(context);
+  return cn.includes(qn);
+}
+
+/** Question heading: formats Part 5 blanks & quoted signal clues, or shows a compact Part 6 cue instead of duplicating the blank sentence. */
+export function QuestionHeading({
+  part, question, context, questionNumber, signal = '', showClues = false, small = false
+}: {
+  part: number;
+  question: string;
+  context: string;
+  questionNumber?: number;
+  signal?: string;
+  showClues?: boolean;
+  small?: boolean;
+}) {
+  if (isDuplicatePart6Question(part, question, context)) {
+    return (
+      <p className="cd-p6-cue">
+        Điền vào chỗ trống <b>[{questionNumber ?? '___'}]</b> trong đoạn văn
+      </p>
+    );
+  }
+  if (!question) return null;
+  if (part !== 5) return <h3 className={small ? 'cd-q is-sm' : 'cd-q'}>{question}</h3>;
+
+  const clues = showClues && signal
+    ? quotedParts(signal).filter(p => p.quoted && p.text.trim().length >= 3).map(p => p.text.trim())
+    : [];
+  const blankSplit = question.split(/([_＿—–-]{3,})/);
+  const renderPiece = (piece: string, keyPrefix: string) => {
+    if (!clues.length) return <Fragment key={keyPrefix}>{piece}</Fragment>;
+    for (const clue of clues) {
+      const idx = piece.toLowerCase().indexOf(clue.toLowerCase());
+      if (idx >= 0) {
+        return (
+          <Fragment key={keyPrefix}>
+            {piece.slice(0, idx)}
+            <mark className="cd-qclue">{piece.slice(idx, idx + clue.length)}</mark>
+            {piece.slice(idx + clue.length)}
+          </Fragment>
+        );
+      }
+    }
+    return <Fragment key={keyPrefix}>{piece}</Fragment>;
+  };
+
+  return (
+    <h3 className={small ? 'cd-q is-sm' : 'cd-q'}>
+      {blankSplit.map((partStr, i) => /^[_＿—–-]{3,}$/.test(partStr)
+        ? <span key={i} className="cd-qblank" aria-label="chỗ trống">&nbsp;</span>
+        : renderPiece(partStr, `q-${i}`))}
+    </h3>
+  );
+}
 
 /** Pieces of the card detail (design/previews/card-v2) shared by the desktop columns and the phone tabs. */
 
@@ -12,30 +76,59 @@ const Chevron = ({ open }: { open: boolean }) => (
   </svg>
 );
 
+export interface OptionRowsProps {
+  rows: OptionRow[];
+  reasonOnly?: boolean;
+  showPos?: boolean;
+  blind?: boolean;
+  selfPick?: string | null;
+  onSelfPick?: (letter: string) => void;
+}
+
 /**
  * A–D rows. The chosen and correct options show their one-line reason; the others keep it behind an explicit
- * "Vì sao" button. `reasonOnly` (reading questions) shows the reason alone when there is one, the meaning otherwise.
+ * "Vì sao" button. In `blind` mode before picking, all styling, tags and reasons are hidden until the learner picks A–D.
  */
-export function OptionRows({ rows, reasonOnly = false, showPos = false }: { rows: OptionRow[]; reasonOnly?: boolean; showPos?: boolean }) {
+export function OptionRows({ rows, reasonOnly = false, showPos = false, blind = false, selfPick = null, onSelfPick }: OptionRowsProps) {
   const [open, setOpen] = useState<ReadonlySet<string>>(new Set());
   const id = useId();
+  const testing = blind && !selfPick;
   const line = (row: OptionRow) => reasonOnly && row.reason
     ? <>{row.reason}</>
     : <>{row.meaning && <b>{row.meaning}</b>}{row.meaning && row.reason ? ' — ' : ''}{row.reason}</>;
   return (
     <ol className="cd-opts">
       {rows.map(row => {
+        const effectiveRole: OptionRow['role'] = testing
+          ? ''
+          : blind && selfPick
+            ? (row.role === 'ans' ? 'ans' : row.letter === selfPick ? 'pick' : '')
+            : row.role;
         const has = Boolean(row.meaning || row.reason);
-        const toggle = row.role === '' && has;
-        const shown = has && (row.role !== '' || open.has(row.letter));
+        const toggle = !testing && effectiveRole === '' && has;
+        const shown = !testing && has && (effectiveRole !== '' || open.has(row.letter));
         const whyId = `${id}-${row.letter}`;
+        const tagText = blind && selfPick
+          ? (row.letter === selfPick && row.role === 'ans' ? 'chính xác' : effectiveRole === 'ans' ? 'đáp án' : effectiveRole === 'pick' ? 'bạn chọn' : '')
+          : effectiveRole === 'pick' ? 'bạn chọn' : effectiveRole === 'ans' ? 'đáp án' : '';
+
+        if (testing) {
+          return (
+            <li key={row.letter || row.text} className="cd-opt is-blind">
+              <button type="button" className="cd-opt-btn" onClick={() => onSelfPick?.(row.letter)}>
+                <span className="cd-lt" aria-hidden="true">{row.letter}</span>
+                <span className="cd-tx"><span className="sr-only">{row.letter}. </span>{row.text}</span>
+              </button>
+            </li>
+          );
+        }
+
         return (
-          <li key={row.letter || row.text} className={'cd-opt' + (row.role ? ` is-${row.role}` : '')}>
+          <li key={row.letter || row.text} className={'cd-opt' + (effectiveRole ? ` is-${effectiveRole}` : '')}>
             <div className="cd-ot">
               <span className="cd-lt" aria-hidden="true">{row.letter}</span>
               <span className="cd-tx"><span className="sr-only">{row.letter}. </span>{row.text}{showPos && row.pos ? <em className="cd-pos">{row.pos}</em> : null}</span>
-              {row.role === 'pick' && <small className="cd-tag">bạn chọn</small>}
-              {row.role === 'ans' && <small className="cd-tag">đáp án</small>}
+              {tagText && <small className="cd-tag">{tagText}</small>}
               {toggle && (
                 <button type="button" className="cd-ask" aria-expanded={open.has(row.letter)} aria-controls={whyId}
                   aria-label={`Vì sao ${row.letter}`}
@@ -52,8 +145,15 @@ export function OptionRows({ rows, reasonOnly = false, showPos = false }: { rows
   );
 }
 
-export function TipBlock({ tip, size = 54 }: { tip: string; size?: number }) {
-  return <div className="cd-tip"><Soc state="idle" size={size} /><p><b>Mẹo nhanh:</b> <span>{tip}</span></p></div>;
+export function TipBlock({ tip, size = 54, icon = 'soc' }: { tip: string; size?: number; icon?: 'soc' | 'bulb' }) {
+  return (
+    <div className="cd-tip">
+      {icon === 'bulb'
+        ? <span className="cd-tip-bulb" aria-hidden="true"><Lightbulb size={22} /></span>
+        : <Soc state="idle" size={size} />}
+      <p><b>Mẹo nhanh:</b> <span>{tip}</span></p>
+    </div>
+  );
 }
 
 export function SignalBlock({ text }: { text: string }) {
@@ -120,11 +220,34 @@ export function EvidenceJumper({ at, count, onNext }: { at: number; count: numbe
   </button>;
 }
 
-export function EvidencePassage({ context, evidences, at, marked }: { context: string; evidences: readonly EvidenceNote[]; at: number; marked?: { blocks: MarkedBlock[]; count: number } }) {
-  const computed = useMemo(() => marked ?? markPassage(context, evidences), [marked, context, evidences]);
-  const { blocks } = computed;
+const BLANK_TOKEN = /([_＿]{2,}\s*\(?\b\d{1,3}\b\)?\.?|\(?\b\d{1,3}\b\)?\s*[_＿]{2,}|\[(\d{1,3})\])/g;
+
+function renderInlineText(text: string, formatBlanks: boolean) {
+  if (!formatBlanks) return <>{text}</>;
+  const out: Array<string | { num: string }> = [];
+  let cursor = 0;
+  for (let m = BLANK_TOKEN.exec(text); m; m = BLANK_TOKEN.exec(text)) {
+    if (m.index > cursor) out.push(text.slice(cursor, m.index));
+    const numMatch = m[0].match(/\d{1,3}/);
+    out.push({ num: numMatch ? numMatch[0] : '___' });
+    cursor = m.index + m[0].length;
+  }
+  BLANK_TOKEN.lastIndex = 0;
+  if (cursor < text.length) out.push(text.slice(cursor));
+  return <>{out.map((chunk, i) => typeof chunk === 'string'
+    ? <Fragment key={i}>{chunk}</Fragment>
+    : <span key={i} className="cd-blank">[{chunk.num}]</span>)}</>;
+}
+
+export function EvidencePassage({ context, evidences, at, marked, hideHighlights = false, part }: { context: string; evidences: readonly EvidenceNote[]; at: number; marked?: { blocks: MarkedBlock[]; count: number }; hideHighlights?: boolean; part?: number }) {
+  const computed = useMemo(
+    () => (hideHighlights ? markPassage(context, []) : marked ?? markPassage(context, evidences)),
+    [hideHighlights, marked, context, evidences]
+  );
+  const { blocks, count } = computed;
+  const formatBlanks = part === 6;
   return (
-    <div className="psg cd-psg" lang="en">
+    <div className={'psg cd-psg' + (count > 1 ? ' has-multi' : '')} lang="en">
       {blocks.map((block, index) => block.kind === 'label'
         ? <p key={index} className="psg-label" lang="vi">{block.text}</p>
         : block.kind === 'table'
@@ -144,10 +267,10 @@ export function EvidencePassage({ context, evidences, at, marked }: { context: s
                 </Fragment>
               ))}</tbody>
             </table></div>
-          : <p key={index} className="psg-text">{block.segments.map((segment, part) => segment.kind === 'text'
-              ? <Fragment key={part}>{segment.text}</Fragment>
-              : <Fragment key={part}>
-                  <mark className={'cd-ev' + (segment.order === at ? ' is-at' : '')} data-ev={segment.order}>{segment.text}</mark>
+          : <p key={index} className="psg-text">{block.segments.map((segment, segIdx) => segment.kind === 'text'
+              ? <Fragment key={segIdx}>{renderInlineText(segment.text, formatBlanks)}</Fragment>
+              : <Fragment key={segIdx}>
+                  <mark className={'cd-ev' + (segment.order === at ? ' is-at' : '')} data-ev={segment.order}>{renderInlineText(segment.text, formatBlanks)}</mark>
                   {segment.translation && <span className="cd-ev-vi" lang="vi">{segment.translation}</span>}
                 </Fragment>)}
             </p>)}

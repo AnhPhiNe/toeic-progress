@@ -36,16 +36,6 @@ const SHOWN = 4;
 export function BakeryChoose(p: Props) {
   const [all, setAll] = useState(false);
   const allRef = useModalA11y(all, () => setAll(false));
-  const [recipe, setRecipe] = useState(false);
-  const recipeBox = useRef<HTMLDivElement>(null);
-  useEffect(() => {
-    if (!recipe) return;
-    const key = (e: KeyboardEvent) => { if (e.key === 'Escape') setRecipe(false); };
-    const click = (e: MouseEvent) => { if (!recipeBox.current?.contains(e.target as Node)) setRecipe(false); };
-    window.addEventListener('keydown', key);
-    window.addEventListener('mousedown', click);
-    return () => { window.removeEventListener('keydown', key); window.removeEventListener('mousedown', click); };
-  }, [recipe]);
 
   const [going, setGoing] = useState(false);
   const timeout = useRef<number | undefined>(undefined);
@@ -200,12 +190,6 @@ export function BakeryChoose(p: Props) {
               <div className="bk-dock-foot">
                 <div className="bk-links">
                   <button type="button" className="bk-quiet-pill" onClick={p.onLog}>Chỉ ghi kết quả</button>
-                  <div className="bk-recipe-wrap" ref={recipeBox}>
-                    <button type="button" className={'bk-quiet-pill' + (recipe ? ' is-on' : '')} aria-expanded={recipe} aria-controls="bk-recipe-pop" onClick={() => setRecipe(v => !v)}>Công thức</button>
-                    {recipe && (free
-                      ? <div className="bk-recipe-pop" id="bk-recipe-pop" role="region" aria-label="Công thức"><p className="bk-recipe-free">{FREE_RECIPE(p.minutes)}</p></div>
-                      : <RecipePop mode={p.mode} label={p.label} questions={chosen?.questions ?? 0} minutes={p.minutes} />)}
-                  </div>
                 </div>
                 <span className="bk-audio-note">Phần Nghe chạy theo audio → dùng “Chỉ ghi kết quả”</span>
               </div>
@@ -287,31 +271,8 @@ export function BakeryChoose(p: Props) {
 export const FREE_HINT = 'Học từ, nghe, shadowing… phút vẫn tính vào chuỗi.';
 export const FREE_RECIPE = (minutes: number) => `Chọn một việc, học ${minutes} phút rồi nghỉ 5 phút; sau 4 mẻ nghỉ dài 15 phút.`;
 
-/** Whole minutes for a recipe step ("10p"); seconds for very short steps. */
-const stepTime = (seconds: number) => (seconds >= 60 ? `${Math.round(seconds / 60)}p` : formatSpan(seconds));
-
-/** "Công thức" preview: the same steps as the running oven's recipe card, with minutes per step at the chosen time. */
-function RecipePop({ mode, label, questions, minutes }: { mode: PacingMode; label: string; questions: number; minutes: number }) {
-  const total = Math.max(1, questions);
-  const per = (minutes * 60) / total;
-  const steps = recipeSteps(total, 0, mode, minutes * 60);
-  const fullReading = mode === 'FULL_READING';
-  return (
-    <div className="bk-recipe-pop" id="bk-recipe-pop" role="region" aria-label="Công thức">
-      <b>{fullReading ? `${label} · chiến thuật gợi ý 12/8/55p` : `${label} · ${paceWords(per)} một câu`}</b>
-      <ol>
-        {steps.map((step, i) => (
-          <li key={step.from}>
-            <em>{i + 1}</em>
-            <span>Câu {step.from}–{step.to} · {fullReading ? step.name : step.name.toLowerCase()}</span>
-            <small>{stepTime(step.durationSeconds ?? (step.to - step.from + 1) * per)}</small>
-          </li>
-        ))}
-      </ol>
-      <p>{fullReading ? 'Chiến thuật phân bổ gợi ý khi luyện đề (không phải quy định chia giờ của ETS). Quá giờ thì đánh dấu, qua câu sau.' : 'Quá giờ thì đánh dấu, qua câu sau.'}</p>
-    </div>
-  );
-}
+/** Format each step duration using exact minutes/seconds (e.g. 2′24 for 12m ÷ 5 steps). */
+const stepTime = (seconds: number) => formatSpan(seconds);
 
 const FlameIcon = () => (
   <svg width="20" height="22" viewBox="0 0 20 22" aria-hidden="true"><path d="M10 1c1 4 6 6 6 12a6 6 0 0 1-12 0c0-3 2-5 3-6 0 2 1 3 2 3 0-3-1-6 1-9z" fill="#fff" /><path d="M10 12c1 2 3 3 3 5a3 3 0 0 1-6 0c0-1 1-2 1-3 1 1 2 0 2-2z" fill="#ffd25e" /></svg>

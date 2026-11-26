@@ -327,3 +327,6 @@
 .pc .cv-warn-row { margin: 0 16px; }
 .pc-foot.is-calm .pc-send { display: flex; align-items: center; justify-content: center; gap: 8px; min-height: 52px; }
 .pc-foot.is-calm .pc-send svg { flex: none; }
+
+.pn-words-top { display: flex; align-items: center; justify-content: space-between; gap: 10px; margin-top: 12px; padding: 10px 14px; border-radius: 16px; background: #fff0f4; color: var(--rd-ink); font-size: 14px; font-weight: 800; }
+.pn-words-study { padding: 8px 14px; font-size: 14px; border-radius: 99px; }

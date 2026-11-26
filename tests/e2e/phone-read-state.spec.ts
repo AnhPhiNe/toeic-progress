@@ -50,7 +50,8 @@ test('phone read state: "Sửa" opens the grid in a sheet and "Cách khác" hold
 
   await dialog.getByRole('button', { name: /^Cách khác/ }).click();
   const more = page.getByRole('dialog', { name: 'Cách khác', exact: true });
-  for (const name of [/^Dán ảnh kết quả/, /^Phiếu tô giấy/, /^Chụp phiếu giấy liên tiếp/]) await expect(more.getByRole('button', { name }).first()).toBeVisible();
+  for (const name of [/^Dán ảnh kết quả/, /^Chụp phiếu giấy liên tiếp/]) await expect(more.getByRole('button', { name }).first()).toBeVisible();
+  await expect(more.getByRole('button', { name: /^Phiếu tô giấy/ })).toHaveCount(0);
   await expect(more.getByText('Điểm từ đề thi')).toBeVisible();
   await page.keyboard.press('Escape');
   await expect(more).toHaveCount(0);

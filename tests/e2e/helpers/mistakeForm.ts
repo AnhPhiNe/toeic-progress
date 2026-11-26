@@ -43,7 +43,13 @@ export async function openManualForm(page: Page) {
       await captureMore(page.getByRole('dialog', { name: 'Chụp trang chữa bài', exact: true }), 'Tự gõ một câu');
     }
   } else {
-    await page.getByRole('button', { name: /Tự gõ một câu$/i }).first().click();
+    const direct = page.getByRole('button', { name: /Tự gõ một câu$/i }).first();
+    if (await direct.isVisible()) {
+      await direct.click();
+    } else {
+      await page.getByRole('button', { name: 'Thêm thao tác', exact: true }).click();
+      await page.getByRole('menuitem', { name: /Tự gõ một câu/i }).click();
+    }
   }
   const modal = page.getByRole('dialog', { name: 'Tự gõ một câu sai', exact: true });
   await expect(modal).toBeVisible();

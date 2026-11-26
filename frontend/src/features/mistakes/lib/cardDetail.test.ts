@@ -108,8 +108,26 @@ describe('evidence across passages', () => {
     expect(cardEvidences(withList).map(item => item.passageLabel)).toEqual(['Đoạn 3 — Thư trả lời', 'Đoạn 1 — Email']);
     const old = card({ context: TRIPLE, explanation: base({ evidence: '“…ask about a refund for my stay”' }) });
     expect(cardEvidences(old)).toEqual([{ text: 'ask about a refund for my stay' }]);
+    const ellipsed = card({
+      context: TRIPLE,
+      explanation: base({ evidences: [{ text: 'Guests who report a problem ... may receive a partial refund after review.', translation: 'Khách báo sự cố có thể được hoàn.' }] })
+    });
+    expect(cardEvidences(ellipsed)).toHaveLength(1);
+    const { blocks: p7Blocks, count: p7Count } = markPassage(TRIPLE, cardEvidences(ellipsed));
+    expect(p7Count).toBe(1);
+    expect(marks(p7Blocks)[0]?.[1]).toBe('Guests who report a problem during their stay may receive a partial refund after review.');
+
+    const quotedClue = card({
+      context: TRIPLE,
+      explanation: base({ analysis: 'Dấu hiệu: cụm “The air conditioning did not work” cho thấy lý do hoàn tiền.' })
+    });
+    expect(cardEvidences(quotedClue)).toEqual([{ text: 'The air conditioning did not work.' }]);
+
     const part6 = card({ part: 6, questionNumber: 135, context: 'We are glad. All rooms 135 ____ with a view of the lake. Thank you.', explanation: base({ translation: 'Mọi phòng đều có view hồ.' }) });
     expect(cardEvidences(part6)).toEqual([{ text: 'All rooms 135 ____ with a view of the lake.', translation: 'Mọi phòng đều có view hồ.' }]);
+
+    const part6Comma = card({ part: 6, questionNumber: 143, context: 'Allow clients to choose. ____ 143., some submit a detailed sketch of the design. Others agree.', explanation: base({ translation: 'Một số gửi bản phác thảo.' }) });
+    expect(cardEvidences(part6Comma)).toEqual([{ text: '____ 143., some submit a detailed sketch of the design.', translation: 'Một số gửi bản phác thảo.' }]);
     expect(cardEvidences(card({ explanation: base({ evidences }) }))).toEqual([]);
   });
 

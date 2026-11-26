@@ -33,19 +33,18 @@ describe('pickTodayTasks', () => {
     expect(tasks[0]).toMatchObject({ kind: 'FULL_TEST', title: 'Ghi điểm đề đầu tiên', done: false, kicker: 'TIẾP THEO · 120 PHÚT' });
   });
 
-  it('orders review, timer, word cards and full test, with stable ids per kind and day', () => {
+  it('orders review, timer and full test, with stable ids per kind and day', () => {
     const data = bundle({
       sessions: [test('1', '2026-11-01', { part7: 30 })],
       mistakes: [mistake('a'), mistake('b'), mistake('c')],
     });
-    const tasks = pickTodayTasks(data, TODAY, { dueWordCards: 8 });
-    expect(tasks.map(t => t.kind)).toEqual(['REVIEW_MISTAKES', 'PART_TIMER', 'WORD_CARDS', 'FULL_TEST']);
+    const tasks = pickTodayTasks(data, TODAY);
+    expect(tasks.map(t => t.kind)).toEqual(['REVIEW_MISTAKES', 'PART_TIMER', 'FULL_TEST']);
     expect(tasks.map(t => t.id)).toEqual([
-      'review_mistakes:2026-11-13', 'part_timer:2026-11-13', 'word_cards:2026-11-13', 'full_test:2026-11-13',
+      'review_mistakes:2026-11-13', 'part_timer:2026-11-13', 'full_test:2026-11-13',
     ]);
-    expect(tasks[2]).toMatchObject({ title: 'Ôn 8 thẻ từ', reason: 'Đến hạn hôm nay', kicker: 'TIẾP THEO · 10 PHÚT', count: 8 });
-    expect(tasks[3]).toMatchObject({ title: 'Làm 1 đề full', reason: 'Đã 12 ngày chưa làm đề', minutes: 120 });
-    expect(pickTodayTasks(data, TODAY, { dueWordCards: 8 }).map(t => t.id)).toEqual(tasks.map(t => t.id));
+    expect(tasks[2]).toMatchObject({ title: 'Làm 1 đề full', reason: 'Đã 12 ngày chưa làm đề', minutes: 120 });
+    expect(pickTodayTasks(data, TODAY).map(t => t.id)).toEqual(tasks.map(t => t.id));
   });
 
   it('sizes the mistake review at a minute per card, 5 to 15 minutes', () => {
@@ -126,9 +125,9 @@ describe('pickTodayTasks', () => {
     expect(pickTodayTasks(bundle({ sessions: [test('1', '2026-11-12')] }), TODAY)).toEqual([]);
   });
 
-  it('caps the list at four tasks', () => {
+  it('caps the list at available task kinds', () => {
     const data = bundle({ sessions: [test('1', '2026-10-01', { part7: 30 })], mistakes: [mistake('a')] });
-    expect(pickTodayTasks(data, TODAY, { dueWordCards: 3 })).toHaveLength(4);
+    expect(pickTodayTasks(data, TODAY)).toHaveLength(3);
   });
 });
 

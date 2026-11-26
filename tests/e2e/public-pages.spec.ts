@@ -7,9 +7,9 @@ test('landing shows the hero and its primary button opens the app', async ({ pag
   await expect(page.getByRole('heading', { name: 'Sóc giúp bạn thế nào' })).toBeVisible();
   await expect(page.getByRole('heading', { name: /Ghi điểm & chụp trang chữa bài/ })).toBeVisible();
   await expect(page.getByText(/không liên kết với ETS/)).toBeVisible();
-  // One main action.
-  await expect(page.getByRole('link', { name: 'Bắt đầu miễn phí' })).toHaveCount(1);
-  await page.getByRole('link', { name: 'Bắt đầu miễn phí' }).click();
+  // Hero CTA and closing CTA both lead straight to the app.
+  await expect(page.getByRole('link', { name: 'Bắt đầu miễn phí' })).toHaveCount(2);
+  await page.getByRole('link', { name: 'Bắt đầu miễn phí' }).first().click();
   await expect(page).toHaveURL(/\/$/);
   await expect(page.getByRole('button', { name: 'Hành trình điểm', exact: true })).toBeVisible();
 });
@@ -17,7 +17,7 @@ test('landing shows the hero and its primary button opens the app', async ({ pag
 test('phone landing shows the main action in the first screen', async ({ page }) => {
   await page.setViewportSize({ width: 390, height: 844 });
   await page.goto('/gioi-thieu');
-  await expect(page.getByRole('link', { name: 'Bắt đầu miễn phí' })).toBeInViewport();
+  await expect(page.getByRole('link', { name: 'Bắt đầu miễn phí' }).first()).toBeInViewport();
   await expect(page.getByRole('link', { name: 'Đăng nhập' })).toBeInViewport();
   expect(await page.evaluate(() => document.documentElement.scrollWidth)).toBeLessThanOrEqual(390);
 });

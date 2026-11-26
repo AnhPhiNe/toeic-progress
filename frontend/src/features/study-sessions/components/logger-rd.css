@@ -325,3 +325,9 @@ button.rdg-meta-row:hover .rdg-meta-pill:not(.is-pending) { background: #e6f5f2;
   .rdl-drop .soc, .rdg-cells button[aria-pressed="true"] { animation: none; }
   .rdl-sw i, .rdl-drop, .rdg-cells button, .rdg-act-btn, .rdl-alt-btn, .rdg-back, .rdg-meta-row, .rdg-meta-pill { transition: none; }
 }
+
+.rdl-alt-link { border: 0; background: none; padding: 6px 4px; font: 800 13px var(--rd-font); color: var(--rd-violet-d); cursor: pointer; text-decoration: underline; text-underline-offset: 3px; }
+.rdl-alt-link:hover:not(:disabled) { color: var(--rd-ink); }
+.rdl-meta-bar { display: flex; align-items: center; justify-content: space-between; gap: 10px; border-radius: 14px; background: var(--rd-soft); border: 1.5px solid var(--rd-line); padding: 8px 14px; font: 700 13px var(--rd-font); color: #4d5850; }
+.rdl-meta-bar b { font-weight: 900; color: var(--rd-ink); }
+.rdl-meta-bar button { flex: none; border: 0; background: #fff; border-radius: 10px; padding: 5px 10px; font: 900 12.5px var(--rd-font); color: var(--rd-violet-d); box-shadow: 0 1.5px 0 var(--rd-line); cursor: pointer; }

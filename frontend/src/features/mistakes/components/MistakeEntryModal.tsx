@@ -401,7 +401,7 @@ export function MistakeEntryModal({ original, sourceSuggestions = [], initialSou
         className="rdm-pchip max-md:flex-1">{value}</button>)}
     </div>
   );
-  const optional = <span className="rdm-opt">không bắt buộc</span>;
+  const optional = null;
   const canReadClipboard = typeof navigator !== 'undefined' && Boolean(navigator.clipboard?.readText);
 
   const choiceButton = (letter: ChoiceLetter) => {
@@ -410,11 +410,14 @@ export function MistakeEntryModal({ original, sourceSuggestions = [], initialSou
       onClick={() => { setChoice(value => value === letter ? '' : letter); setChanged(true); }} className="rdm-abcd is-me max-md:flex-1">{letter}</button>;
   };
 
-  const contextBlock = (
+  const contextField = (
     <MistakeContextInput part={effectivePart} text={contextText} busy={busy || persisting}
       onText={value => { setContextText(value); setReadingText(current => current !== null ? value : null); invalidateContext(); }}
       reuseLabel={readingText ? original ? 'Đang dùng bài đọc đã lưu' : 'Đang dùng bài đọc trước' : undefined} onReset={clearReading} />
   );
+  const contextBlock = readingText
+    ? <details className="rdm-key"><summary>Đoạn đọc đã có (bấm để xem hoặc sửa)</summary>{contextField}</details>
+    : contextField;
   const answerDetails = (
     <details open={isPhone || keyOpen} onToggle={event => { if (!isPhone) setKeyOpen(event.currentTarget.open); }} className="rdm-key">
       <summary>{source ? `Đáp án từ đề: ${source}` : <>Đáp án đúng từ đề{optional}</>}</summary>

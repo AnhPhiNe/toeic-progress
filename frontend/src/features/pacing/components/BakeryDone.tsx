@@ -1,4 +1,6 @@
 import { useEffect, useState, type CSSProperties } from 'react';
+import { playChime } from '@/shared/lib/sound';
+import { triggerHaptic } from '@/shared/lib/haptics';
 import { STRAWBERRY_EVERY, sprinkles, strawberryCount } from '../lib/bakery';
 import { BulbString, CakePlate, ChefSoc, Oven, Tray } from './BakeryArt';
 
@@ -26,7 +28,12 @@ const COLORS = ['#ff7a9c', '#ffc83d', '#46b35a', '#1c8fe3', '#a78bfa', '#ff8a3d'
 /** Ra lò: the oven door drops, sprinkles fall, and the cake is decorated with one strawberry per 7 correct answers. */
 export function BakeryDone(p: Props) {
   const [ready, setReady] = useState(false);
-  useEffect(() => { const id = requestAnimationFrame(() => setReady(true)); return () => cancelAnimationFrame(id); }, []);
+  useEffect(() => {
+    playChime('complete');
+    triggerHaptic(10);
+    const id = requestAnimationFrame(() => setReady(true));
+    return () => cancelAnimationFrame(id);
+  }, []);
   const correct = Math.max(0, p.questions - p.wrong);
   const berries = strawberryCount(correct);
 

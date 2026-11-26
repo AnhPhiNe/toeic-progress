@@ -19,12 +19,10 @@ interface Props {
   onToggleExpanded: () => void;
   onStartTask: (task: TodayTask) => void;
   onSkipTask: (id: string) => void;
-  onToggleHabit: (id: string) => void;
   onStartSuggestion: (task: SuggestedTask) => void;
   onToggleSuggestion: (id: string) => void;
   onPracticeMore: () => void;
   onOpenStreak: () => void;
-  onOpenAdd: () => void;
   /** Giải đấu tuần chip next to the streak (shown even before joining). */
   league?: { text: string; short: string; aria: string; onOpen: () => void };
 }
@@ -57,9 +55,7 @@ export const TaskPanel = forwardRef<HTMLElement, Props>(function TaskPanel(p, re
           {hero?.suggestion
             ? <button type="button" className="tp-go" onClick={() => p.onStartSuggestion(hero.suggestion!)}><Play size={15} fill="currentColor" aria-hidden="true" />Bắt đầu</button>
             : hero?.task
-            ? <button type="button" className="tp-go" onClick={() => p.onStartTask(hero.task!)}><Play size={15} fill="currentColor" aria-hidden="true" />Bắt đầu</button>
-            : hero?.habit
-              ? <button type="button" className="tp-go" onClick={() => p.onToggleHabit(hero.habit!.id)}><Check size={16} strokeWidth={3.2} aria-hidden="true" />Xong</button>
+              ? <button type="button" className="tp-go" onClick={() => p.onStartTask(hero.task!)}><Play size={15} fill="currentColor" aria-hidden="true" />Bắt đầu</button>
               : <button type="button" className="tp-go" onClick={fallback.onClick}>{fallback.button}</button>}
           {hero?.suggestion && (
             <button type="button" className="tp-skip" aria-label={`Đánh dấu xong: ${suggestionLabel(hero.suggestion)}`} onClick={() => p.onToggleSuggestion(hero.suggestion!.id)}><Check size={16} strokeWidth={3} aria-hidden="true" /></button>
@@ -96,18 +92,11 @@ export const TaskPanel = forwardRef<HTMLElement, Props>(function TaskPanel(p, re
             <ul className="tp-list">
               {rest.map(item => (
                 <li key={item.key} className={item.done ? 'is-done' : undefined}>
-                  {item.habit ? (
-                    <button type="button" className="tp-row" aria-pressed={item.done} onClick={() => p.onToggleHabit(item.habit!.id)}>
-                      <i className={'tp-box' + (item.done ? ' is-on' : '')}>{item.done && <Check size={15} strokeWidth={3.4} aria-hidden="true" />}</i>
-                      <span className="tp-row__t">{item.title}</span>
-                    </button>
-                  ) : (
-                    <button type="button" className="tp-row" disabled={item.done} onClick={() => item.task && p.onStartTask(item.task)}>
-                      <i className={'tp-box' + (item.done ? ' is-on' : ' is-play')}>{item.done ? <Check size={15} strokeWidth={3.4} aria-hidden="true" /> : <Play size={11} fill="currentColor" aria-hidden="true" />}</i>
-                      <span className="tp-row__t">{item.title}{!item.done && <small>Sóc gợi ý</small>}</span>
-                      {!item.done && item.task && <em>{item.task.minutes} phút</em>}
-                    </button>
-                  )}
+                  <button type="button" className="tp-row" disabled={item.done} onClick={() => item.task && p.onStartTask(item.task)}>
+                    <i className={'tp-box' + (item.done ? ' is-on' : ' is-play')}>{item.done ? <Check size={15} strokeWidth={3.4} aria-hidden="true" /> : <Play size={11} fill="currentColor" aria-hidden="true" />}</i>
+                    <span className="tp-row__t">{item.title}{!item.done && <small>Sóc gợi ý</small>}</span>
+                    {!item.done && item.task && <em>{item.task.minutes} phút</em>}
+                  </button>
                   {item.task && !item.done && (
                     <button type="button" className="tp-x" aria-label={`Bỏ qua "${item.title}" hôm nay`} onClick={() => p.onSkipTask(item.task!.id)}><X size={18} aria-hidden="true" /></button>
                   )}
@@ -128,7 +117,6 @@ export const TaskPanel = forwardRef<HTMLElement, Props>(function TaskPanel(p, re
           </button>
         )}
         <span className="tp-chip is-count">{allDone ? `Tuần ${p.weekDone}/${p.weekGoal} buổi` : total > 0 ? `${doneCount}/${total} xong` : 'Chưa có việc'}</span>
-        <button type="button" className="tp-add" onClick={p.onOpenAdd}>+ Thêm việc</button>
       </div>
     </section>
   );

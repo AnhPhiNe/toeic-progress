@@ -3,7 +3,7 @@ import type { LRPartScore, PartTimingDurations, PracticePartResult, StudySession
 import { calculateFromPartScores, PART_MAX_QUESTIONS } from '@/shared/domain/etsScoring';
 import { partScoresFromWrong } from '@/shared/domain/questionNumbers';
 import { TestNamePicker } from '@/shared/components/TestNamePicker';
-import { getTodayDateString, loadVocabLog } from '@/shared/data/storage';
+import { getTodayDateString } from '@/shared/data/storage';
 import { Soc } from '@/shared/ui/soc/Soc';
 import { PhoneSheet } from '@/app/components/phone';
 import { getAIConfiguration } from '@/features/mistakes/services/aiMistakeExtractor';
@@ -13,7 +13,7 @@ import { PartTimingModal } from '../PartTimingModal';
 import type { AppliedResultScore, ResultScoreStore } from '../ResultScoreReview';
 import type { WrongNumberDraft } from '../../lib/wrongNumberDraft';
 import { WheelPicker } from './WheelPicker';
-import { chipNames, clamp, countFromScaled, dayLabel, percent, previousDay, previousScored, recentTestNames, scaledFromCount, vocabWeek, dayMonth, VOCAB_CHIPS, type VocabEditApi } from './phoneLogLib';
+import { chipNames, clamp, countFromScaled, dayLabel, percent, previousDay, previousScored, recentTestNames, scaledFromCount } from './phoneLogLib';
 import './phoneLog.css';
 
 export type PhoneStep = 'pick' | 'manual' | 'wrong';
@@ -21,7 +21,7 @@ type PartNumber = PracticePartResult['part'];
 const partMax = (part: PartNumber) => PART_MAX_QUESTIONS[`part${part}` as keyof LRPartScore];
 
 export interface PhoneLoggerProps {
-  sessionType: 'FULL_TEST' | 'PART_PRACTICE' | 'VOCAB';
+  sessionType: 'FULL_TEST' | 'PART_PRACTICE';
   isEditing: boolean;
   step: PhoneStep; setStep: (step: PhoneStep) => void;
   onClose: () => void;
@@ -47,8 +47,6 @@ export interface PhoneLoggerProps {
   /** Same test already logged that day: shown above the save button, which then saves anyway. */
   duplicateNotice?: ReactNode;
   practiceRows: PracticePartResult[]; setPracticeRows: (rows: PracticePartResult[]) => void;
-  vocabCount: number; setVocabCount: (value: number) => void;
-  vocab: VocabEditApi;
 }
 
 function Header({ title, right, onClose }: { title: string; right?: ReactNode; onClose: () => void }) {
@@ -112,9 +110,6 @@ export function PhoneLogger(props: PhoneLoggerProps) {
   /** Sóc has read a result photo: the wrong step shows a compact result card instead of the grid. */
   const [aiRead, setAiRead] = useState(false);
   const pickerRef = useRef<HTMLDivElement>(null);
-  const [confirmDel, setConfirmDel] = useState(false);
-  const [vocabDraft, setVocabDraft] = useState<string | null>(null);
-  useEffect(() => { setConfirmDel(false); setVocabDraft(null); }, [props.date]);
   useEffect(() => { let off = false; void getAIConfiguration().then(c => { if (!off) setAiOn(c.resultImages !== false); }).catch(() => {}); return () => { off = true; }; }, []);
 
   const listening = Number(props.manualListening) || 0;
@@ -158,70 +153,6 @@ export function PhoneLogger(props: PhoneLoggerProps) {
         : <button type="submit" name="afterSave" value="close" className={'pl-save pl-save--' + tone}>{label}</button>}
     </footer>
   );
-
-  /* ---------- Vocabulary ---------- */
-  if (sessionType === 'VOCAB') {
-    const week = vocabWeek(loadVocabLog(), today);
-    const maxBar = Math.max(30, ...week.map(day => day.count));
-    const { edit, existing } = props.vocab;
-    const dm = dayMonth(props.date);
-    return (
-      <div className="pl" key="vocab">
-        <Header title={edit ? `Sửa ngày ${dm}` : 'Từ vựng hôm nay'} onClose={props.onClose} right={<DateChip date={props.date} setDate={props.vocab.onPick} today={today} />} />
-        <div className="pl-body pl-center">
-          <Soc state="idle" size={96} className="pl-soc" />
-          {edit && <button type="button" className="pl-back" onClick={props.vocab.onBack}>‹ Hôm nay</button>}
-          <p className="pl-mut">{props.date === today ? 'Hôm nay' : edit ? `Ngày ${dm}` : dayLabel(props.date, today)} bạn học được</p>
-          <div className="pl-big-count">
-            <button type="button" aria-label="Giảm số từ" onClick={() => { setVocabDraft(null); props.setVocabCount(clamp(props.vocabCount - 1, 1, 10000)); }}>−</button>
-            <input data-large-text type="text" inputMode="numeric" pattern="[0-9]*" aria-label="Số từ đã học" value={vocabDraft ?? String(props.vocabCount)}
-              onFocus={event => { setVocabDraft(String(props.vocabCount)); event.currentTarget.select(); }}
-              onChange={event => {
-                const digits = event.target.value.replace(/\D/g, '');
-                setVocabDraft(digits);
-                if (digits) props.setVocabCount(clamp(Number(digits), 1, 10000));
-              }}
-              onBlur={() => {
-                if (vocabDraft !== null) {
-                  props.setVocabCount(clamp(Number(vocabDraft || 1), 1, 10000));
-                  setVocabDraft(null);
-                }
-              }} />
-            <button type="button" aria-label="Tăng số từ" onClick={() => { setVocabDraft(null); props.setVocabCount(clamp(props.vocabCount + 1, 1, 10000)); }}>+</button>
-          </div>
-          <p className="pl-unit">từ mới</p>
-          <div className="pl-chips pl-chips--c" role="group" aria-label="Chọn nhanh số từ">
-            {VOCAB_CHIPS.map(n => <button key={n} type="button" aria-pressed={props.vocabCount === n} className={'pl-chip' + (props.vocabCount === n ? ' is-on' : '')} onClick={() => { setVocabDraft(null); props.setVocabCount(n); }}>{n}</button>)}
-          </div>
-          <div className="pl-week">
-            <p className="pl-lab">7 NGÀY QUA · CHẠM ĐỂ SỬA</p>
-            <div className="pl-bars">
-              {week.map((day, index) => (
-                <button key={day.date} type="button" className={'pl-bar' + (day.date === props.date ? ' is-on' : '')} aria-pressed={day.date === props.date}
-                  aria-label={`Ngày ${dayMonth(day.date)}: ${day.count > 0 ? `${day.count} từ` : 'chưa có từ'}`}
-                  onClick={() => props.vocab.onPick(day.date)}>
-                  <i style={{ height: 4 + (day.count / maxBar) * 62 }} />
-                  <small>{index === 6 ? 'Nay' : ['CN', 'T2', 'T3', 'T4', 'T5', 'T6', 'T7'][new Date(day.date + 'T00:00:00').getDay()]}</small>
-                </button>
-              ))}
-            </div>
-          </div>
-          {edit && existing > 0 && (confirmDel
-            ? (
-              <div className="pl-del-ask" role="group" aria-label="Xác nhận xóa ngày">
-                Xóa {existing} từ của ngày {dm}?
-                <div>
-                  <button type="button" className="is-danger" onClick={() => { setConfirmDel(false); props.vocab.onDelete(); }}>Xóa</button>
-                  <button type="button" onClick={() => setConfirmDel(false)}>Giữ lại</button>
-                </div>
-              </div>
-            )
-            : <button type="button" className="pl-del" onClick={() => setConfirmDel(true)}>Xóa ngày này</button>)}
-        </div>
-        {saveBtn(edit ? `Lưu ngày ${dm}` : `Lưu ${props.vocabCount} từ`, 'green')}
-      </div>
-    );
-  }
 
   /* ---------- Part practice ---------- */
   if (sessionType === 'PART_PRACTICE') {
@@ -269,7 +200,22 @@ export function PhoneLogger(props: PhoneLoggerProps) {
       <div className="pl" key="pick">
         <Header title="Ghi điểm đề" right="1/2" onClose={props.onClose} />
         <div className="pl-body">
-          <p className="pl-lab">ĐỀ NÀO?</p>
+          <div className="pl-hero">
+            <div className="pl-hero-art" aria-hidden="true"><Soc state="focus" size={120} /></div>
+            <h3>Chụp trang kết quả</h3>
+            <p>Sóc đọc điểm và các câu bạn sai.</p>
+          </div>
+          <label className={'pl-shoot' + (aiOn ? '' : ' is-off')}>
+            <span><i aria-hidden="true">📷</i>{aiOn ? 'Chụp hoặc chọn ảnh' : 'Chưa dùng được lúc này'}</span>
+            <input type="file" accept="image/*" multiple disabled={!aiOn} aria-label="Chụp màn kết quả"
+              onChange={event => {
+                const files = [...(event.target.files ?? [])];
+                event.target.value = '';
+                if (!files.length) return;
+                setWrongFrom('pick'); props.setInitialFiles(files); setStep('wrong');
+              }} />
+          </label>
+          <p className="pl-lab pl-lab--gap">ĐỀ NÀO?</p>
           <div className="pl-chips" role="group" aria-label="Đề">
             {chips.map(name => <button key={name} type="button" aria-pressed={name === props.testName} className={'pl-chip' + (name === props.testName ? ' is-on' : '')} onClick={() => props.setTestName(name)}>{name}</button>)}
             <button type="button" className="pl-chip" onClick={openOther}>🔍 Đề khác</button>
@@ -286,21 +232,6 @@ export function PhoneLogger(props: PhoneLoggerProps) {
               <input type="date" required max={today} value={props.date} aria-label="Chọn ngày" onChange={event => event.target.value && props.setDate(event.target.value)} />
             </label>
           </div>
-          <div className="pl-hero">
-            <div className="pl-hero-art" aria-hidden="true"><Soc state="focus" size={120} /></div>
-            <h3>Chụp trang kết quả</h3>
-            <p>Sóc đọc điểm và các câu bạn sai.</p>
-          </div>
-          <label className={'pl-shoot' + (aiOn ? '' : ' is-off')}>
-            <span><i aria-hidden="true">📷</i>{aiOn ? 'Chụp hoặc chọn ảnh' : 'Chưa dùng được lúc này'}</span>
-            <input type="file" accept="image/*" multiple disabled={!aiOn} aria-label="Chụp màn kết quả"
-              onChange={event => {
-                const files = [...(event.target.files ?? [])];
-                event.target.value = '';
-                if (!files.length) return;
-                setWrongFrom('pick'); props.setInitialFiles(files); setStep('wrong');
-              }} />
-          </label>
           <button type="button" className="pl-quiet" onClick={() => { setWrongFrom('pick'); setStep('wrong'); }}>✎ Tự chọn câu sai</button>
         </div>
       </div>

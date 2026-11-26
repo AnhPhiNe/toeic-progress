@@ -51,7 +51,12 @@
 .rd-side__cta { margin: clamp(8px, calc(8px + var(--sd-k) * .04), 16px) 4px 0; width: calc(100% - 8px); padding: clamp(8px, calc(8px + var(--sd-k) * .025), 13px); }
 
 .rd-side__grp { font-weight: 900; font-size: 12px; color: var(--rd-mut); letter-spacing: .6px; padding: clamp(10px, calc(10px + var(--sd-k) * .07), 24px) 12px clamp(2px, calc(2px + var(--sd-k) * .02), 6px); margin: 0; }
-.rd-side__grp + .rd-side__it { margin-top: 2px; }
+.rd-side__grp + .rd-side__it { margin-top: 2px; font-size: 14px; opacity: .88; }
+.rd-side__row { display: flex; align-items: center; gap: 6px; }
+.rd-side__acct { flex: 1; min-width: 0; margin-bottom: 0; }
+.rd-side__help { flex: none; width: 34px; height: 34px; border-radius: 11px !important; border: 2px solid #e4e8e4 !important; background: #fafaf8 !important; color: var(--rd-mut) !important; font-weight: 900; font-size: 15px; display: grid; place-items: center; text-align: center !important; cursor: pointer; transition: background .15s, border-color .15s; }
+.rd-side__help:hover { background: #fff9e6 !important; border-color: var(--rd-gold) !important; color: var(--rd-gold-d) !important; }
+.rd-side__help.is-on { background: #fff6d9 !important; border-color: var(--rd-gold) !important; color: var(--rd-gold-d) !important; }
 
 .rd-side__me { position: relative; flex: none; margin-top: clamp(0px, calc(var(--sd-k) * .03), 6px); display: flex; align-items: center; gap: 10px; width: 100%;
   padding: clamp(6px, calc(6px + var(--sd-k) * .03), 12px) 12px clamp(6px, calc(6px + var(--sd-k) * .03), 12px) 8px; border-radius: 20px; cursor: pointer;
@@ -98,6 +103,7 @@
   .rd-side__logo { padding: 0 0 18px; }
   .rd-side__mid { align-items: center; width: calc(100% + 12px); }
   .rd-side__it { position: relative; padding: min(6px, var(--sd-pad)); justify-content: center; }
+  .rd-side__row { flex-direction: column; gap: 4px; }
   .rd-side__dot { display: block; position: absolute; top: 4px; right: 4px; margin: 0; }
   .rd-side__cta { width: 52px; padding: 12px 0; margin: 12px 0 0; }
   .rd-side__me { flex-direction: column; padding: 8px 4px; gap: 4px; width: 56px; }

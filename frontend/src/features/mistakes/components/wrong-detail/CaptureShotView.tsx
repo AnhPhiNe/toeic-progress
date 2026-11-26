@@ -47,14 +47,6 @@ interface Props {
 const PART_TITLE = (item: ShotItem) => item.kind === 'shot' ? `Part ${item.part} · Tấm ${item.index}` : shotTitle(item);
 const stateWord = (state: ShotState) => state === 'done' ? ', xong' : state === 'reading' ? ', Sóc đang đọc' : state === 'failed' ? ', chưa đọc được' : state === 'skipped' ? ', bỏ qua' : '';
 
-export function PaperToggle({ on, onChange }: { on: boolean; onChange: (value: boolean) => void }) {
-  return (
-    <button type="button" className="wd-paper-pill" aria-pressed={on} onClick={() => onChange(!on)}>
-      <span className="wd-sw" aria-hidden="true"><i /></span><span>Ảnh giấy</span>
-    </button>
-  );
-}
-
 export function MoreMenu({ items }: { items: Array<{ key: string; icon: ReactNode; title: string; sub: string; run: () => void }> }) {
   const [open, setOpen] = useState(false);
   const box = useRef<HTMLDivElement>(null);
@@ -85,7 +77,7 @@ export function MoreMenu({ items }: { items: Array<{ key: string; icon: ReactNod
 }
 
 export function CaptureView(props: Props) {
-  const { phone, testName, onClose, rows, current, currentState, next, zones, activeZone, onActivateZone, sent, clarity, photoMode, onPhotoMode,
+  const { phone, testName, onClose, rows, current, currentState, next, zones, activeZone, onActivateZone, sent, clarity,
     onAddFiles, onCameraAdd, onEditPhoto, onMovePhoto, onSwitchZone, onRemove, canRead, inFlight, job, strip, onRetry, missing, onCaptureMissing,
     reviewCount, allDone, anyReading, onSelect, onSend, onSkip, onManual, onReview, onSwitchToTray, onEditRange, listeningLeft, onListening, saved, onReviewSaved, onNotify, error, note } = props;
   const [burst, setBurst] = useState<Zone | null>(null);
@@ -214,13 +206,13 @@ export function CaptureView(props: Props) {
         <button type="button" role="tab" aria-selected={activeZone === 'questions'} className={activeZone === 'questions' ? 'is-on' : ''} onClick={() => onActivateZone('questions')}>Câu hỏi · {zones.questions.length + sentHere.length}</button>
       </div>
       <CaptureZone {...zoneBase} zone={activeZone} title={activeZone === 'passage' ? 'Đoạn văn' : 'Câu hỏi'} active items={zones[activeZone]} sent={activeZone === 'questions' ? sentHere : undefined}
-        headRight={<PaperToggle on={photoMode} onChange={onPhotoMode} />} onPreview={(z, index) => setPreview({ zone: z, index })} onSwitchZone={onSwitchZone}
+        onPreview={(z, index) => setPreview({ zone: z, index })} onSwitchZone={onSwitchZone}
         onEmptyTap={() => openCapture(activeZone)}
         emptyText={activeZone === 'passage' ? 'Chụp đoạn văn, không bắt buộc' : `Chụp phần câu hỏi có câu ${current.wrong.join(', ')}`} />
     </>
   ) : (
     <CaptureZone {...zoneBase} zone="questions" title="Ảnh đã chụp" active items={zones.questions} sent={sentHere}
-      headRight={phone ? <PaperToggle on={photoMode} onChange={onPhotoMode} /> : undefined} onPreview={(z, index) => setPreview({ zone: z, index })}
+      onPreview={(z, index) => setPreview({ zone: z, index })}
       onEmptyTap={() => openCapture('questions')}
       emptyText={phone ? 'Chụp cả trang có câu sai, nhiều trang cũng được' : 'Thả ảnh vào đây'} />
   ));
@@ -354,7 +346,7 @@ export function CaptureView(props: Props) {
   const actionHint = showHero ? '' : !staged && reviewCount > 0 ? '' : hint;
   return (
     <>
-      <StepHead phone={false} title="Chụp câu sai" sub={testName} step={3} onClose={onClose} />
+      <StepHead phone={false} title="Chụp câu sai" sub={testName} step={3} progressRatio={rows.length ? done / rows.length : 0} onClose={onClose} />
       <div className="wd-body cv-body">
         <div className="cv-cap">
           <nav className="cv-list" aria-label="Cần chụp">
@@ -366,7 +358,6 @@ export function CaptureView(props: Props) {
               <div className="cv-trow">
                 {!showHero && <h3>{PART_TITLE(current)}</h3>}
                 <span className="wd-sp" />
-                {canRead && !showHero && <PaperToggle on={photoMode} onChange={onPhotoMode} />}
                 {canRead && twoZones && !showHero && <span className="cv-hintk">đổi ô <kbd>1</kbd><kbd>2</kbd></span>}
               </div>
               {failedRow}

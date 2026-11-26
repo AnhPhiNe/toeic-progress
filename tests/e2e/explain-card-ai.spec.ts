@@ -37,8 +37,7 @@ test('a card read from a screenshot gets its explanation on request, once', asyn
   const explain = page.getByRole('button', { name: /^Giải thích với AI/ });
   await explain.click();
   await expect(page.getByRole('status').filter({ hasText: 'Đã thêm giải thích' })).toBeVisible();
-  // Phone tabs: the tip is on "Giải thích".
-  await page.getByRole('tab', { name: 'Giải thích' }).click();
+  // Phone tabs: when only 1 section has content, the tip renders directly without a tab bar.
 
   await expect(page.getByText(TIP).first()).toBeVisible();
   await expect(explain).toHaveCount(0);

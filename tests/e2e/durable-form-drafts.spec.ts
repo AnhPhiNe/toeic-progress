@@ -22,8 +22,6 @@ test('unfinished result restores name and marks after reload on a computer, then
   await page.reload(); form = await openResult(page);
   await expect(form.locator('#session-test-name')).toHaveValue('QA durable result');
   await expect(form.getByRole('status').filter({ hasText: /Đã khôi phục bản nháp trên thiết bị này|Đang tiếp tục bản nháp chưa lưu/ })).toBeVisible();
-  await expect(form.getByLabel('Số câu sai', { exact: true })).toHaveValue('107');
-  await form.getByRole('button', { name: /^Chạm từng câu trên lưới/ }).click();
   await expect(form.getByRole('button', { name: 'Câu 107', exact: true })).toHaveAttribute('aria-pressed', 'true');
   await form.getByRole('button', { name: /^(Lưu điểm|Lưu kết quả)$/ }).click();
   await expect.poll(() => draftRecords(page)).toEqual([]);

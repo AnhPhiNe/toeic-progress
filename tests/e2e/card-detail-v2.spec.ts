@@ -141,11 +141,11 @@ test.describe('desktop 1440x900', () => {
 test.describe('phone 390x844', () => {
   test.use({ viewport: { width: 390, height: 844 } });
 
-  test('Part 5: Câu hỏi | Giải thích | Từ vựng tabs, thumb-zone bar over the tab bar, ⋯ menu, + Ôn cả', async ({ page }) => {
+  test('Part 5: Câu hỏi & Mẹo | Từ vựng tabs, thumb-zone bar over the tab bar, ⋯ menu, + Ôn cả', async ({ page }) => {
     await seed(page);
     await open(page, '.pn-row', /widespread/);
     const tabs = page.getByRole('tablist', { name: 'Phần của thẻ' }).getByRole('tab');
-    await expect(tabs).toHaveText(['Câu hỏi', 'Giải thích', 'Từ vựng']);
+    await expect(tabs).toHaveText(['Câu hỏi & Mẹo', 'Từ vựng']);
     await expect(tabs.first()).toHaveAttribute('aria-selected', 'true');
     await expect(page.locator('.cd-opt.is-ans .cd-why')).toContainText('mặc dù');
     // The bottom bar covers the app's tab bar on this screen.
@@ -155,12 +155,9 @@ test.describe('phone 390x844', () => {
     const box = (await review.boundingBox())!;
     expect(box.y + box.height).toBeGreaterThan(700);
     for (const target of await page.locator('.cdp button:visible').all()) expect((await target.boundingBox())!.height).toBeGreaterThanOrEqual(44);
-    await shot(page, 'phone-part5-cau-hoi');
-
-    await page.getByRole('tab', { name: 'Giải thích' }).click();
     await expect(page.getByText('Mẹo nhanh:')).toBeVisible();
     await expect(page.locator('.cd-sign b')).toHaveText('still');
-    await shot(page, 'phone-part5-giai-thich');
+    await shot(page, 'phone-part5-cau-hoi');
 
     await page.getByRole('tab', { name: 'Từ vựng' }).click();
     await page.getByRole('button', { name: 'Ôn từ rely on', exact: true }).click();
@@ -182,7 +179,7 @@ test.describe('phone 390x844', () => {
     await seed(page);
     await open(page, '.pn-row', /Ortiz/);
     const tabs = page.getByRole('tablist', { name: 'Phần của thẻ' }).getByRole('tab');
-    await expect(tabs).toHaveText(['Đoạn văn', 'Câu hỏi', 'Giải thích', 'Từ vựng']);
+    await expect(tabs).toHaveText(['Đoạn văn', 'Câu hỏi & Mẹo', 'Từ vựng']);
     await expect(page.locator('.cdp-qchip')).toContainText(P7_Q);
     const passage = page.locator('.cdp-pcard');
     await expect(passage.locator('mark.cd-ev')).toHaveCount(2);
@@ -194,11 +191,9 @@ test.describe('phone 390x844', () => {
     await expect(passage.locator('mark.cd-ev.is-at')).toHaveText(EV2);
     await shot(page, 'phone-part7-doan-van-2');
 
-    await page.getByRole('tab', { name: 'Câu hỏi' }).click();
+    await page.getByRole('tab', { name: 'Câu hỏi & Mẹo' }).click();
     await expect(page.locator('.cd-opt.is-pick .cd-why')).toHaveText('thư không hứa đêm miễn phí nào.');
-    await shot(page, 'phone-part7-cau-hoi');
-    await page.getByRole('tab', { name: 'Giải thích' }).click();
     await expect(page.locator('.cd-sign b')).toHaveText('partial refund');
-    await shot(page, 'phone-part7-giai-thich');
+    await shot(page, 'phone-part7-cau-hoi');
   });
 });

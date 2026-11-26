@@ -141,7 +141,7 @@ test('an explanation that never arrived is asked for again on the card without a
   await page.getByRole('button', { name: /^Câu 132/ }).first().click();
   const retry = page.getByRole('button', { name: /^Viết lời giải/ });
   await retry.click();
-  await page.getByRole('tab', { name: 'Giải thích' }).click();
+  await page.getByRole('tab', { name: 'Câu hỏi & Mẹo' }).click();
   await expect(page.getByText(TIP).first()).toBeVisible();
   await expect(retry).toHaveCount(0);
   expect(await page.evaluate(() => (window as Window & { __explainCalls: number[][] }).__explainCalls)).toEqual([[131, 132], [132]]);

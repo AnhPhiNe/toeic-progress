@@ -4,7 +4,8 @@ import { PART_MAX_QUESTIONS } from '@/shared/domain/etsScoring';
 import { PART_NUMBERS, normalizeQuestionList, partOfQuestion, type PartNumber } from '@/shared/domain/questionNumbers';
 import { canReview } from '@/features/mistakes/lib/spacedRepetition';
 import { draftQuestions } from '@/features/mistakes/lib/mistakeDrafts';
-import type { MamStage } from '@/shared/ui/MamMascot';
+
+export type MamStage = 'sprout' | 'leaves' | 'lush' | 'bloom';
 
 /**
  * The one next step after a test, chosen by what the learner has recorded:

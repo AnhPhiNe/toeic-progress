@@ -6,7 +6,6 @@ import { isGroupedPart, PART_NAMES, suggestGroups, type CustomRangeMap } from '@
 import { MAX_CAPTURE_IMAGES } from '@/features/mistakes/lib/captureBatch';
 import { BurstCameraModal } from './BurstCameraModal';
 import { CaptureZone as CalmZone, PhotoPreview } from './CaptureZone';
-import { PaperToggle } from './CaptureShotView';
 import './wrong-detail.css';
 import './capture-part.css';
 import './capture-calm.css';
@@ -49,8 +48,8 @@ interface Props {
  * wrong questions) with a labeled 1-tap switcher (`Đọc: P5 P6 P7 | Nghe: P1 P2 P3 P4`) that preserves staged photos.
  */
 export function CapturePartInput({
-  phone = false, controlsRef, part, group, customPart7Ranges, images, activeZone = 'passage', onActiveZone, onSwitchZone, logged, disabled = false, photoMode = false, clarity, extraTools,
-  onPart, onGroup, onEditPart7Range, onPhotoMode, onAdd, onCameraAdd, onEditImage, onMoveImage, onRemove
+  phone = false, controlsRef, part, group, customPart7Ranges, images, activeZone = 'passage', onActiveZone, onSwitchZone, logged, disabled = false, clarity, extraTools,
+  onPart, onGroup, onEditPart7Range, onAdd, onCameraAdd, onEditImage, onMoveImage, onRemove
 }: Props) {
   const [editingRange, setEditingRange] = useState(false);
   const [fromVal, setFromVal] = useState('');
@@ -105,7 +104,6 @@ export function CapturePartInput({
           <span>Part {part} · {PART_NAMES[part]}</span>
           {logged && wrongIn(part).length > 0 && <small>{wrongIn(part).length} câu sai</small>}
         </span>
-        {onPhotoMode && <div className="cpi-paper"><PaperToggle on={photoMode} onChange={onPhotoMode} /></div>}
       </div>
       <div className="cpi-switch" role="group" aria-label="Chọn Part">
         <span className="cpi-sw-grp">

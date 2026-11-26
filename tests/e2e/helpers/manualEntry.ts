@@ -7,14 +7,19 @@ import type { Locator, Page } from '@playwright/test';
  */
 export async function openManualEntry(page: Page, form: Locator) {
   if ((page.viewportSize()?.width ?? 0) < 768) return;
-  const direct = form.getByRole('button', { name: /^Tự chọn câu sai/ });
+  const direct = form.getByRole('button', { name: /^(Tự chọn câu sai|Không có ảnh\? Tự nhập tay)/ });
   const more = form.getByRole('button', { name: /^Cách khác/ });
   const shortView = form.getByRole('button', { name: /^Chạm từng câu trên lưới/ });
   const grid = form.getByRole('button', { name: 'Câu 1', exact: true });
   await direct.or(more).or(shortView).or(grid).first().waitFor();
-  if (await grid.isVisible()) return;
-  if (await direct.isVisible()) { await direct.click(); return; }
-  if (await more.isVisible()) await chooseMore(form, /^Tự chọn câu sai/);
+  if (!(await grid.isVisible())) {
+    if (await direct.isVisible()) await direct.click();
+    else if (await more.isVisible()) await chooseMore(form, /^(Tự chọn câu sai|Không có ảnh\? Tự nhập tay)/);
+  }
+  const scoreCheck = page.getByRole('dialog', { name: 'Kiểm tra điểm từ ảnh' });
+  if (await scoreCheck.isVisible()) return;
+  const editMeta = form.locator('.rdl-meta-bar button');
+  if (await editMeta.isVisible()) await editMeta.click();
 }
 
 /** Desktop Ghi điểm exposes quick toggles & mode switches inline (and falls back to "Cách khác" menu where used). */

@@ -33,16 +33,34 @@ test('guest vocabulary entry persists', async ({ page }) => {
   await page.goto('/');
   const original = await page.evaluate(() => ({ ...localStorage }));
   try {
-    await openRecordSheet(page, 'vocab');
-    await page.getByRole('dialog').getByRole('button', { name: '10', exact: true }).click();
-    await page.getByRole('dialog').getByRole('button', { name: /^Lưu \d+ từ/ }).click();
+    await page.evaluate(() => {
+      const bundle = JSON.parse(localStorage.getItem('toeic_progress_bundle_v3')!);
+      const now = '2026-11-10T08:00:00.000Z';
+      bundle.mistakes = [{
+        id: 'm-guest-vocab', sessionId: 's-gv', sourceTestName: 'ETS Guest', part: 5, questionNumber: 105,
+        question: 'The memo was ____.', questionContext: 'The memo was ____.', options: ['(A) brief', '(B) briefly'],
+        userChoice: 'B', userChoiceState: 'CHOSEN', userMistake: '(B) briefly', correctAnswer: '(A) brief',
+        answerSource: 'PROVIDED', category: 'OTHER', tags: [], status: 'NEEDS_REVIEW',
+        savedWords: ['brief'], explanation: { quickTip: 'Adj after be', translation: '', questionType: '', evidence: '', paraphrase: '', analysis: '', keyVocabulary: 'brief: ngắn gọn' },
+        createdAt: now, updatedAt: now, deletedAt: null,
+      }];
+      localStorage.setItem('toeic_progress_bundle_v3', JSON.stringify(bundle));
+      localStorage.setItem('toeic_onboarding_done_v1', 'true');
+    });
+    await page.goto('/so-tay');
+    await page.getByRole('group', { name: 'Lọc theo trạng thái' }).getByRole('button', { name: /^Từ\s*1$/ }).click();
+    await page.getByRole('button', { name: 'Ôn 1 từ', exact: true }).click();
+    const dialog = page.getByRole('dialog', { name: 'Ôn từ đã lưu', exact: true });
+    await dialog.getByRole('button', { name: 'Lật xem nghĩa', exact: true }).click();
+    await dialog.getByRole('button', { name: 'Đã nhớ', exact: true }).click();
+    await dialog.getByRole('button', { name: 'Về Sổ tay', exact: true }).click();
     const saved = () => page.evaluate(() => {
       const data = JSON.parse(localStorage.getItem('toeic_progress_bundle_v3')!);
       return { words: data.vocabLog.filter((entry: { deletedAt: string | null }) => !entry.deletedAt).map((entry: { count: number }) => entry.count) };
     });
-    await expect.poll(saved).toEqual({ words: [10] });
+    await expect.poll(saved).toEqual({ words: [1] });
     await page.reload();
-    expect(await saved()).toEqual({ words: [10] });
+    expect(await saved()).toEqual({ words: [1] });
   } finally {
     await page.evaluate(saved => { localStorage.clear(); for (const [key, value] of Object.entries(saved)) localStorage.setItem(key, value); }, original);
   }

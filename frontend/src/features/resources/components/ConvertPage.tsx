@@ -3,6 +3,7 @@ import {
   PRACTICE_SCORE_SOURCE, convertRawToListeningScore, convertRawToReadingScore, getConcordanceByToeic
 } from '@/shared/domain/etsScoring';
 import type { StudySession } from '@/shared/types';
+import { ShareCardButton } from '@/shared/components/ShareCardButton';
 import { buildJourney, convertTests, fromShownCount, mrzLine, shortLevelName, toShownCount, clampCount, type InputMode } from '../lib/convert';
 import { ConvertSkillCard } from './ConvertSkillCard';
 import { ConvertJourney } from './ConvertJourney';
@@ -109,6 +110,7 @@ export function ConvertPage({ sessions, targetScore, gear = [] }: Props) {
                   <small>TỔNG ĐIỂM DỰ KIẾN</small>
                   <p><b data-testid="estimated-total">{total}</b><span> / 990</span></p>
                 </div>
+                <ShareCardButton data={{ total, listening: scaledListening, reading: scaledReading, gear, subtitle: tier ? `Mức ${tier.cefr}` : undefined }} className="cv-share" label="Chia sẻ ảnh" />
                 {goal !== null ? (
                   <div className="cv-goal">
                     <span>Mục tiêu {goal} · {reached ? <>đã chạm <span aria-hidden="true">🎉</span></> : `còn ${goal - total}`}</span>

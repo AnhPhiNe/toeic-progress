@@ -15,7 +15,7 @@ test('phone bottom bar navigates, traps focus in its sheets, restores it and han
   const sheet = page.getByRole('dialog', { name: 'Ghi lại gì?', exact: true });
   await expect(sheet).toBeVisible();
   const first = sheet.getByRole('button', { name: /^Điểm đề/ });
-  const last = sheet.getByRole('button', { name: /^Thêm từ vựng/ });
+  const last = sheet.getByRole('button', { name: /^Chụp câu sai/ });
   await expect(first).toBeFocused();
   await last.focus();
   await page.keyboard.press('Tab');

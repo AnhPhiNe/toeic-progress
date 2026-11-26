@@ -22,7 +22,7 @@ test('Part 7 passage and stem stay separate across manual entry, phone card, rev
   await openCard(page);
   await page.getByRole('tab', { name: 'Đoạn văn', exact: true }).click();
   await expect(page.locator('.cdp-pcard').getByText(passage, { exact: true })).toBeVisible();
-  await page.getByRole('tab', { name: 'Câu hỏi', exact: true }).click();
+  await page.getByRole('tab', { name: 'Câu hỏi & Mẹo', exact: true }).click();
   await expect(page.locator('.cd-q')).toHaveText(question);
   for (const width of [375, 1440]) {
     await page.setViewportSize({ width, height: 900 });

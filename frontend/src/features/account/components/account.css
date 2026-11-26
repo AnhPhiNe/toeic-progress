@@ -180,9 +180,13 @@ button.st-row:active { background: #e6ebe6; }
 .stb-glbl { display: flex; align-items: center; gap: 8px; margin: 4px 0 10px; font-weight: 900; font-size: 13px; letter-spacing: .6px; text-transform: uppercase; color: #7d867f; }
 .stb-glbl i { width: 10px; height: 10px; border-radius: 4px; }
 .stb-tiles { display: grid; gap: 14px; margin-bottom: 16px; }
-.stb-tiles--goal { grid-template-columns: 1.25fr 1fr 1fr; }
+.stb-tiles--goal { grid-template-columns: 1.25fr 1fr; }
 .stb-tiles--goal .stb-tile { min-height: 158px; }
-.stb-tiles--streak { grid-template-columns: 1fr 2.25fr; }
+.stb-tiles--streak { grid-template-columns: 1fr; }
+.stb-adv { margin-top: 10px; font-size: 13px; color: var(--rd-mut); }
+.stb-adv summary { cursor: pointer; font-weight: 800; list-style: none; display: inline-flex; align-items: center; gap: 6px; padding: 4px 0; }
+.stb-adv summary::-webkit-details-marker { display: none; }
+.stb-adv__row { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 8px; }
 .stb-tiles--streak .stb-tile { min-height: 124px; }
 .stb-tile { position: relative; border-radius: 24px; padding: 16px 18px; overflow: hidden; min-width: 0; transition: opacity .15s; }
 .stb-k { display: flex; align-items: center; gap: 7px; margin: 0; padding-right: 76px; font-weight: 900; font-size: 15.5px; }

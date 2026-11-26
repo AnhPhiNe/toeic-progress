@@ -103,18 +103,18 @@ ${phone ? '' : roundTree(30, H + 6, .9)}
 
 /** Not joined: the climb from Đồng to Cao thủ, Sóc at the foot. */
 export function climbScene(W: number, H: number, phone: boolean, gear: readonly string[], coat: string): string {
-  const spots: Array<[RankTierKey, number, number]> = [['dong', .16, .86], ['bac', .48, .79], ['vang', .78, .66], ['bach-kim', .53, .55], ['kim-cuong', .25, .4], ['cao-thu', .56, .2]];
-  const w = phone ? 56 : 92;
-  const road = spots.map(([, x, y], i) => `${i ? 'L' : 'M'}${(x * W).toFixed(0)} ${(y * H + w * .5).toFixed(0)}`).join(' ');
+  const spots: Array<[RankTierKey, number, number]> = [['dong', .15, .82], ['bac', .46, .75], ['vang', .77, .62], ['bach-kim', .52, .5], ['kim-cuong', .25, .36], ['cao-thu', .55, .17]];
+  const w = phone ? 54 : 74;
+  const road = spots.map(([, x, y], i) => `${i ? 'L' : 'M'}${(x * W).toFixed(0)} ${(y * H + w * .45).toFixed(0)}`).join(' ');
   return `<svg class="rk-scene" viewBox="0 0 ${W} ${H}" preserveAspectRatio="xMidYMid slice" aria-hidden="true">
 <defs><linearGradient id="clsky" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#ffd9c4"/><stop offset="1" stop-color="#fff3e2"/></linearGradient></defs>
-<rect width="${W}" height="${H}" fill="url(#clsky)"/><circle cx="${W * .82}" cy="${H * .16}" r="${W * .06}" fill="#ffd24d"/>
-${cloud(W * .2, H * .12, phone ? .5 : .8)}${cloud(W * .62, H * .3, phone ? .4 : .6)}
-<path d="M${W * -.1} ${H} L${W * .55} ${H * .14} L${W * 1.1} ${H}Z" fill="#a8dba0"/><path d="M${W * .2} ${H} C${W * .4} ${H * .7} ${W * .7} ${H * .6} ${W * 1.1} ${H * .8} V${H}Z" fill="#8fd08a"/>
-<path d="${road}" fill="none" stroke="#f3dcb5" stroke-width="${phone ? 10 : 16}" stroke-linecap="round" stroke-linejoin="round"/>
-${spots.map(([k, x, y], i) => `<svg x="${(x * W - w / 2).toFixed(0)}" y="${(y * H - w * .55).toFixed(0)}" width="${w}" height="${(w * 1.1).toFixed(0)}" viewBox="0 0 200 220" overflow="visible">${emblem(k, null, 'cl' + i)}</svg><text x="${(x * W).toFixed(0)}" y="${(y * H + w * .62).toFixed(0)}" text-anchor="middle" font-family="Nunito, system-ui, sans-serif" font-weight="900" font-size="${phone ? 11 : 15}" fill="#3d4842" stroke="#fff" stroke-width="3" paint-order="stroke">${tierLook(k).name}</text>`).join('')}
-${socAt('hi', W * .3, H * .97, phone ? 60 : 86, gear, coat, 'rk-hop')}
-${meadow(W * .5, H * .93, phone ? 8 : 16, W * .8)}${phone ? '' : roundTree(W * .06, H * .82, .9) + roundTree(W * .94, H * 1.02, 1)}
+<rect width="${W}" height="${H}" fill="url(#clsky)"/><circle cx="${W * .82}" cy="${H * .17}" r="${W * .055}" fill="#ffd24d"/>
+${cloud(W * .2, H * .12, phone ? .5 : .75)}${cloud(W * .64, H * .3, phone ? .4 : .55)}
+<path d="M${W * -.1} ${H} L${W * .55} ${H * .13} L${W * 1.1} ${H}Z" fill="#a8dba0"/><path d="M${W * .2} ${H} C${W * .4} ${H * .72} ${W * .7} ${H * .62} ${W * 1.1} ${H * .8} V${H}Z" fill="#8fd08a"/>
+<path d="${road}" fill="none" stroke="#f3dcb5" stroke-width="${phone ? 9 : 13}" stroke-linecap="round" stroke-linejoin="round"/>
+${spots.map(([k, x, y], i) => `<svg x="${(x * W - w / 2).toFixed(0)}" y="${(y * H - w * .52).toFixed(0)}" width="${w}" height="${(w * 1.1).toFixed(0)}" viewBox="0 0 200 220" overflow="visible">${emblem(k, null, 'cl' + i)}</svg><text x="${(x * W).toFixed(0)}" y="${(y * H + w * .62).toFixed(0)}" text-anchor="middle" font-family="Nunito, system-ui, sans-serif" font-weight="900" font-size="${phone ? 11 : 14}" fill="#3d4842" stroke="#fff" stroke-width="3" paint-order="stroke">${tierLook(k).name}</text>`).join('')}
+${socAt('hi', W * .3, H * .95, phone ? 56 : 72, gear, coat, 'rk-hop')}
+${meadow(W * .5, H * .93, phone ? 8 : 14, W * .8)}${phone ? '' : roundTree(W * .05, H * .86, .8) + roundTree(W * .94, H * 1.0, .9)}
 </svg>`;
 }
 

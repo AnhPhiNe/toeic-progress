@@ -2,7 +2,7 @@
 .bk-root button { font-family: var(--rd-font); }
 .bk-root svg text { font-family: var(--rd-font); }
 .bk-err { color: #c23c63; font-weight: 800; font-size: 14px; margin-top: 10px; }
-.bk-fire { --rd-btn: #ff8a3d; --rd-btn-d: #d9661f; font-size: 18px; padding: 15px 24px; border-radius: 18px; }
+.bk-fire { --rd-btn: var(--rd-violet); --rd-btn-d: var(--rd-violet-d); font-size: 18px; padding: 15px 24px; border-radius: 18px; }
 .bk-step { display: inline-flex; align-items: center; gap: 10px; background: #fff; border-radius: 16px; padding: 7px 10px; box-shadow: 0 0 0 2px #e6e9e6; font-weight: 900; font-size: 15px; }
 .bk-step span { font-weight: 800; color: var(--rd-mut); font-size: 13px; }
 .bk-step button { width: 32px; height: 32px; border: 0; border-radius: 10px; background: var(--rd-violet-l); color: var(--rd-violet-d); font-weight: 900; font-size: 18px; cursor: pointer; }
@@ -95,7 +95,8 @@
 /* Integrated dock at bottom of left card */
 .bk-dock { background: #fffaf5; border-top: 2px solid #f6ece0; border-radius: 0 0 26px 26px; padding: 16px 20px 18px; display: flex; flex-direction: column; gap: 12px; }
 .bk-go { display: flex; align-items: center; gap: 12px; }
-.bk-dock .bk-fire { flex: 1; min-width: 0; min-height: 56px; border-radius: 18px; padding: 15px 22px; font-size: 19px; white-space: nowrap; background: linear-gradient(90deg, #ff7a1a, #ff5c86); box-shadow: 0 5px 0 #c44a3a, 0 8px 20px rgba(255, 92, 134, .24); }
+.bk-dock .bk-fire { flex: 1; min-width: 0; min-height: 56px; border-radius: 18px; padding: 15px 22px; font-size: 19px; white-space: nowrap; --rd-btn: var(--rd-violet); --rd-btn-d: var(--rd-violet-d); background: var(--rd-violet); box-shadow: 0 5px 0 var(--rd-violet-d), 0 8px 20px rgba(124, 92, 224, .22); }
+.bk-dock .bk-fire:active { box-shadow: 0 1px 0 var(--rd-violet-d); }
 .bk-dock .bk-step { flex: none; border-radius: 18px; background: #fff; border: 2px solid #ffdcc5; box-shadow: 0 4px 0 #f7d6be; padding: 5px 8px; gap: 6px; color: #d9661f; }
 .bk-step-lb { font-weight: 800; font-size: 12.5px; color: #b5805d; padding: 0 2px 0 6px; }
 .bk-step-val { min-width: 38px; text-align: center; font-weight: 900; font-size: 16px; color: var(--rd-ink); font-variant-numeric: tabular-nums; }

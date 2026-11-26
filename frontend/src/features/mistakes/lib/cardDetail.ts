@@ -37,19 +37,86 @@ const CHAR_CLASS: Record<string, string> = {
 };
 const escape = (value: string) => value.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
 
-/** Where `needle` sits in `text`, ignoring case, spacing, dashes, table pipes and curly/straight quotes; null when it is not there. */
+const SENTENCE_STOP = /[.!?\n]/;
+
+/** Expands a matched character span to the full enclosing sentence in `text`. */
+export function expandToSentence(text: string, range: { start: number; end: number }): { start: number; end: number } {
+  let s = range.start;
+  while (s > 0 && !SENTENCE_STOP.test(text[s - 1])) s -= 1;
+  let e = range.end;
+  while (e < text.length) {
+    if (SENTENCE_STOP.test(text[e])) {
+      const isBlankDot = text[e] === '.' && e > 0 && /\d/.test(text[e - 1]) && /^\s*[,;:a-z]/.test(text.slice(e + 1));
+      if (!isBlankDot) break;
+    }
+    e += 1;
+  }
+  if (e < text.length && text[e] !== '\n') e += 1;
+  while (s < e && /\s/.test(text[s])) s += 1;
+  return { start: s, end: e };
+}
+
+function buildPattern(words: string[]): RegExp {
+  const pattern = words.map(word => [...word].map(char => CHAR_CLASS[char] ?? escape(char)).join('')).join('\\s+');
+  return new RegExp(pattern, 'i');
+}
+
+/** Where `needle` sits in `text`, ignoring case, spacing, dashes, table pipes, curly quotes and optional "..." ellipses; null when it is not there. */
 export function looseFind(text: string, needle: string): { start: number; end: number } | null {
   const cleaned = needle.trim().replace(/^["“”']+|["“”']+$/g, '').replace(/^\s*\||\|\s*$/g, '').replace(/\s*\|\s*/g, '|').trim();
-  const words = cleaned.split(/\s+/).filter(Boolean);
-  if (!words.length || words.join(' ').length < 6) return null;
-  const pattern = words.map(word => [...word].map(char => CHAR_CLASS[char] ?? escape(char)).join('')).join('\\s+');
-  const match = new RegExp(pattern, 'i').exec(text);
-  return match ? { start: match.index, end: match.index + match[0].length } : null;
+  const hasEllipsis = /…|\.\.\./.test(cleaned);
+  if (!hasEllipsis) {
+    const words = cleaned.split(/\s+/).filter(Boolean);
+    if (!words.length || words.join(' ').length < 6) return null;
+    const match = buildPattern(words).exec(text);
+    if (match) return { start: match.index, end: match.index + match[0].length };
+    if (words.length >= 6) {
+      for (let i = 0; i <= words.length - 5; i += 1) {
+        const sub = words.slice(i, i + 5);
+        if (sub.join(' ').length < 18) continue;
+        const hit = buildPattern(sub).exec(text);
+        if (hit) return expandToSentence(text, { start: hit.index, end: hit.index + hit[0].length });
+      }
+    }
+    return null;
+  }
+  const chunks = cleaned.split(/…|\.\.\./).map(c => c.trim().replace(/^["“”',;:]+|["“”',;:]+$/g, '').trim()).filter(Boolean);
+  const ranges: Array<{ start: number; end: number }> = [];
+  for (const chunk of chunks) {
+    const w = chunk.split(/\s+/).filter(Boolean);
+    if (w.length < 3 && chunk.length < 12) continue;
+    const hit = buildPattern(w).exec(text);
+    if (hit) ranges.push({ start: hit.index, end: hit.index + hit[0].length });
+  }
+  if (!ranges.length) return null;
+  if (ranges.length >= 2) {
+    const first = ranges[0];
+    const last = ranges[ranges.length - 1];
+    if (last.start >= first.start && last.end - first.start <= 320) {
+      return expandToSentence(text, { start: first.start, end: last.end });
+    }
+  }
+  return expandToSentence(text, ranges[0]);
+}
+
+function quotedClueFallback(context: string, ex?: MistakeEntry['explanation']): EvidenceNote[] {
+  const pool = [ex?.paraphrase ?? '', ex?.analysis ?? '', ex?.quickTip ?? ''].join('\n');
+  const pattern = /['‘“"]([^'‘’“”"\n]{10,160})['’”"]/g;
+  for (let m = pattern.exec(pool); m; m = pattern.exec(pool)) {
+    const phrase = m[1].trim();
+    if (phrase.split(/\s+/).length < 3 && phrase.length < 16) continue;
+    const hit = looseFind(context, phrase);
+    if (hit) {
+      const sentence = expandToSentence(context, hit);
+      return [{ text: context.slice(sentence.start, sentence.end) }];
+    }
+  }
+  return [];
 }
 
 /**
  * The evidence to mark for a card: the AI's evidence sentences when they are in the passage; for older cards the
- * Part 6 blank's sentence (with the sentence translation) or the single quoted evidence. Never a guess.
+ * Part 6 blank's sentence (with the sentence translation), the single quoted evidence, or quoted clues in analysis.
  */
 export function cardEvidences(m: Pick<MistakeEntry, 'part' | 'context' | 'questionNumber' | 'explanation'>): EvidenceNote[] {
   const context = m.context?.trim() ?? '';
@@ -65,6 +132,7 @@ export function cardEvidences(m: Pick<MistakeEntry, 'part' | 'context' | 'questi
     const range = findFocus(context, { part: m.part, evidence: ex.evidence });
     if (range) return [{ text: context.slice(range.start, range.end) }];
   }
+  if (m.part === 7) return quotedClueFallback(context, ex);
   return [];
 }
 
